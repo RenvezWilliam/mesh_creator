@@ -1,5 +1,4 @@
 import gmsh
-import math
 
 from datetime import datetime
 from typing import Literal
@@ -51,8 +50,6 @@ def automatize(points, mode: Literal['tri', 'quad'] = "tri"):
         gc.add_point(p[0], p[1])
     
     gc.finilize()
-    gc.create_surface()
-    gc.create_mesh()
 
     gc.save(f'mesh_tri_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.msh')
 
