@@ -1,0 +1,8 @@
+# Environnement virtuel
+.venv/
+
+# Dossier local git
+.git/
+
+# Cache python
+__pycache__/
