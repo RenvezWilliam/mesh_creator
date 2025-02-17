@@ -15,9 +15,9 @@ class GMSH_CREATOR:
         gmsh.model.add("form")
 
     def add_point(self, x, y):
-        self.points.append(gmsh.model.geo.add_point(x, y, 0))
+        self.points.append(gmsh.model.geo.add_point(x, y, 0, 1))
 
-    def finilize(self):
+    def finilize(self, mode : Literal['tri', 'quad']):
         ## Créer les lignes
         for i in range(len(self.points) - 1):
             self.lines.append(gmsh.model.geo.addLine(self.points[i], self.points[i + 1]))
@@ -28,10 +28,12 @@ class GMSH_CREATOR:
         loop = gmsh.model.geo.add_curve_loop(self.lines)
         surface = gmsh.model.geo.add_plane_surface([loop])
 
+        if mode == 'quad':
+            gmsh.option.set_number("Mesh.RecombineAll", 1)
+
         ## Créer le maillage
         gmsh.model.geo.synchronize()
         gmsh.model.mesh.generate(2)
-        
 
     def view_mesh(self):
         gmsh.fltk.run()
@@ -48,10 +50,15 @@ def automatize(points, mode: Literal['tri', 'quad'] = "tri"):
     for p in points:
         p = (float(p[0]/100), float((500 - p[1])/100))
         gc.add_point(p[0], p[1])
-    
-    gc.finilize()
 
-    gc.save(f'mesh_tri_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.msh')
+    gc.finilize(mode)
+
+    if mode == 'tri':
+        gc.save(f'mesh_tri_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}')
+    else:
+        gc.save(f'mesh_quad_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}')
+
+    # gc.view_mesh()
 
 
 ##########################################################################

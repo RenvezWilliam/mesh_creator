@@ -29,7 +29,9 @@
 
 • **Bouton 'R'** : Retire le dernier point
 
-• **Bouton 'S'** : Sauvegarde en un fichier .msh
+• **Bouton 'T'** : Sauvegarde en maillage triangulaire
+
+• **Bouton 'Y'** : Sauvegarde en maillage quadrangulaire
 
 ## /!\
 Le but ici est de créer la forme globale et pas directement le maillage. 

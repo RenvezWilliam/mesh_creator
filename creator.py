@@ -1,6 +1,7 @@
 import pygame
 from pygame.locals import *
 import sys
+
 import gmsh_creator as gc
 
 class Game:
@@ -13,7 +14,9 @@ class Game:
 
         ## Initialisation des couleurs ##
         self.WHITE                  = (255, 255, 255)
-        self.ANCHOR                 = (100, 100, 100)
+        self.ANCHOR_BIG             = (100, 100, 100)
+        self.ANCHOR_NORMAL          = (150, 150, 150)
+        self.ANCHOR_SMALL           = (200, 200, 200)
         self.POINT                  = (100, 100, 255)
         self.LAST_POINT             = (255, 200, 50)
         self.LINE                   = (200, 50, 255)
@@ -35,18 +38,24 @@ class Game:
     
     def draw_large_anchor_lines(self):
         for i in range(0, 500, 100):
-            pygame.draw.line(self.window, self.ANCHOR, (0, i), (500, i))
-            pygame.draw.line(self.window, self.ANCHOR, (i, 0), (i, 500))
+            pygame.draw.line(self.window, self.ANCHOR_BIG, (0, i), (500, i))
+            pygame.draw.line(self.window, self.ANCHOR_BIG, (i, 0), (i, 500))
 
     def draw_anchor_lines(self):
         for i in range(0, 500, 50):
-            pygame.draw.line(self.window, self.ANCHOR, (0, i), (500, i))
-            pygame.draw.line(self.window, self.ANCHOR, (i, 0), (i, 500))
+            pygame.draw.line(self.window, self.ANCHOR_NORMAL, (0, i), (500, i))
+            pygame.draw.line(self.window, self.ANCHOR_NORMAL, (i, 0), (i, 500))
+            
+            self.draw_large_anchor_lines()
 
     def draw_small_anchor_lines(self):
         for i in range(0, 500, 10):
-            pygame.draw.line(self.window, self.ANCHOR, (0, i), (500, i))
-            pygame.draw.line(self.window, self.ANCHOR, (i, 0), (i, 500))
+            pygame.draw.line(self.window, self.ANCHOR_SMALL, (0, i), (500, i))
+            pygame.draw.line(self.window, self.ANCHOR_SMALL, (i, 0), (i, 500))
+
+            self.draw_anchor_lines()
+
+
 
     def draw_points(self):
         if (len(self.points) > 0):
@@ -64,11 +73,11 @@ class Game:
         if len(self.points) > 0:
             self.points.pop(-1)
 
-    def save(self):
+    def save(self, mode = 'tri'):
         if len(self.points) < 3:
             print("Vous avez besoin d'au moins 3 points pour sauvegarder.")
             return
-        gc.automatize(self.points, 'tri')
+        gc.automatize(self.points, mode)
 
     def events(self):
 
@@ -85,7 +94,8 @@ class Game:
                 if pygame.key.name(event.key) == 'left shift': self._shift = True
                 if pygame.key.name(event.key) == 'left ctrl' : self._ctrl  = True
                 if pygame.key.name(event.key) == 'r'         : self.remove_last_point()
-                if pygame.key.name(event.key) == 's'         : self.save()
+                if pygame.key.name(event.key) == 't'         : self.save("tri")
+                if pygame.key.name(event.key) == 'y'         : self.save("quad")
             
             if event.type == pygame.KEYUP:
                 if pygame.key.name(event.key) == 'left shift': self._shift = False
@@ -123,9 +133,9 @@ if __name__ == '__main__':
     print("• Maintenir SHIFT        -> Moyen Ancrage")
     print("• Maintenir SHIFT + CTRL -> Petit Ancrage")
     print("• Bouton 'R'             -> Retire le dernier point")
-    print("• Bouton 'S'             -> Sauvegarder en un fichier MSH")
-    # print("• Bouton 'T'             -> Sauvegarder un fichier MSH avec un maillage triangulaire")
-    # print("• Bouton 'Y'             -> Sauvegarder un fichier MSH avec un maillage quadrangulaire")
+    # print("• Bouton 'S'             -> Sauvegarder en un fichier MSH")
+    print("• Bouton 'T'             -> Sauvegarder un fichier MSH avec un maillage triangulaire")
+    print("• Bouton 'Y'             -> Sauvegarder un fichier MSH avec un maillage quadrangulaire")
 
     while True:
         game.refresh()
