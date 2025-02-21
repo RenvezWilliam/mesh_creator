@@ -19,19 +19,35 @@
 ``$ python3 creator.py``
 
 ## Fonctionnement
-• **Clique souris** : Ajout d'un point
 
-• **Maintenir CTRL** : Grand ancrage
+### Points
+• **Clic gauche** : Ajout d'un point\
+• **Clic droit** : Retire le dernier point de la figure en cours
 
-• **Maintenir SHIFT** : Moyen ancrage
+### Ancrage
+• **CTRL** : Grand ancrage\
+• **SHIFT** : Moyen ancrage\
+• **CTRL + SHIFT** : Petit ancrage
 
-• **Maintenir CTRL + SHIFT** : Petit ancrage
+### Gestion des figures
+• **'N'** : Nouvelle figure\
+• **'🠕'** : Figure suivante\
+• **'🠗'** : Figure précédente
 
-• **Bouton 'R'** : Retire le dernier point
+### Sauvegardes
+#### > .msh
+• **'S'** : Sauvegarde en .msh (triangulaire)\
+• **SHIFT + 'S'** : Sauvegarde en .msh (quadrangulaire)
 
-• **Bouton 'T'** : Sauvegarde en maillage triangulaire
+#### > .geo
+• ***Work In Progress***
 
-• **Bouton 'Y'** : Sauvegarde en maillage quadrangulaire
+### Visualisation
+• **'V'** : Visualiser sous GMSH (triangulaire)\
+• **SHIFT + 'V'** Visualiser sous GMSH (quadrangulaire)\
+
+### Gestion des algorithmes
+• ***Work In Prograss***
 
 ## /!\
 Le but ici est de créer la forme globale et pas directement le maillage. 

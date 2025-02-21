@@ -1,8 +1,15 @@
+import multiprocessing.process
 import gmsh
 import math # Pour la création de l'étoile dans le if __name__
 
 from datetime import datetime
 from typing import Literal
+
+import creator
+import pygame
+
+import os
+import multiprocessing
 
 class FIGURE_CREATOR:
     def __init__(self):
@@ -48,7 +55,9 @@ class FIGURE_CREATOR:
 
     def finilize(self, mode : Literal['tri', 'quad']):
         if mode == 'quad':
-            gmsh.option.set_number("Mesh.RecombineAll", 1)
+            gmsh.option.set_number("Mesh.SubdivisionAlgorithm", 1)
+        else:
+            gmsh.option.set_number("Mesh.SubdivisionAlgorithm", 0)
 
         ## Créer le maillage
         gmsh.model.geo.synchronize()
@@ -60,13 +69,26 @@ class FIGURE_CREATOR:
 
     def save(self, filename):
         gmsh.write(filename+'.msh')
+    
+    def save_as_geo(self):
+        # Sauvegarde // Devra être modifié lorsque les quarts de cercles seront en place
+        dt = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        # Placement de tous les points
+        id = 1
+
+        with open(f'./figure_{dt}.geo', 'w') as f:
+            for pts_list in self.points:
+                for pt in pts_list:
+                    f.write(f'Point({id}) = {{{pt[0]}, {pt[1]}, 0, 1.0}}')
+
+
+
 
 ##########################################################################
 
 def automatize(points, mode: Literal['tri', 'quad'] = "tri"):
     fc = FIGURE_CREATOR()
     fc.initialize()
-
 
     for i, pp in enumerate(points):
         
@@ -75,7 +97,7 @@ def automatize(points, mode: Literal['tri', 'quad'] = "tri"):
             fc.add_point(p[0], p[1])
         
         if i != len(points) - 1:
-            fc.add_fig() 
+            fc.add_fig()
 
     fc.create_surface()
     fc.finilize(mode)
@@ -85,7 +107,48 @@ def automatize(points, mode: Literal['tri', 'quad'] = "tri"):
     else:
         fc.save(f'mesh_quad_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}')
 
-    # fc.view_mesh()
+def view(points, mode: Literal['tri', 'quad'] = "tri", game : creator.Game = None):
+
+    if game == None:
+        return
+
+    fc = FIGURE_CREATOR()
+    fc.initialize()
+
+    for i, pp in enumerate(points):
+        
+        for p in pp:
+            p = (float(p[0] / 100), float(500 - p[1]/100))
+            fc.add_point(p[0], p[1])
+        
+        if i != len(points) - 1:
+            fc.add_fig()
+
+    fc.create_surface()
+    fc.finilize(mode)
+
+    game.display_switch(False)
+
+    gmsh_process = multiprocessing.Process(target=fc.view_mesh)
+    gmsh_process.start()
+    gmsh_process.join()
+
+    game.display_switch(True)
+
+def save_as_geo(points):
+    fc = FIGURE_CREATOR()
+
+    for i, pp in enumerate(points):
+        
+        for p in pp:
+            p = (float(p[0] / 100), float(500 - p[1]/100))
+            fc.add_point(p[0], p[1])
+        
+        if i != len(points) - 1:
+            fc.add_fig()
+
+    fc.save_as_geo()
+
 
 ##########################################################################
 

@@ -21,17 +21,21 @@ OTHER_LINE      = (204, 152, 255)
 class Game:
 
     def __init__(self):
+        self.initialize()
+
+        self._is_on                     = True
+        self.figures                    = []
+        self.figures.append(Figure())
+        self.current_selected_figure    = 0
+        
+    
+    def initialize(self):
         pygame.init()
         self.size                       = self.width, self.height = 500, 500
         self.window                     = pygame.display.set_mode(self.size)
         self.clock                      = pygame.time.Clock().tick(30)
         self.title                      = pygame.display.set_caption('Editeur de figure')
 
-        self.figures                    = []
-        self.figures.append(Figure())
-        self.current_selected_figure    = 0
-
-        ## Initialisation des variables ##
         self._ctrl, self._shift         = False, False
 
     def refresh(self):
@@ -71,6 +75,23 @@ class Game:
         if not is_present:
             self.figures[self.current_selected_figure].add_point(x, y)
 
+    def display_switch(self, _on : bool = None):
+        if _on == None:
+            self._is_on = not self._is_on
+        else:
+            self._is_on = _on
+
+        if self._is_on:
+            self.initialize()
+        else:
+            pygame.quit()
+
+    def display(self):
+        if self._is_on:
+            self.refresh()
+            self.events()
+
+            pygame.display.flip()
 
     def draw(self): # Pour toutes les figures, lance les dessins
         for i in range(len(self.figures)):
@@ -89,8 +110,28 @@ class Game:
         self.figures.pop(self.current_selected_figure)
         self.current_selected_figure = self.current_selected_figure % len(self.figures)
 
-    def save(self, mode = 'tri'): ## A REFAIRE INTEGRALEMENT
-        
+    def save(self):
+        mode = "quad" if self._shift else "tri"
+
+        self.remove_all_empty_figures()
+
+        points = []
+
+        for f in self.figures:
+            points.append(f.points)
+            if len(f.points) < 3:
+                print('Une des surfaces possède moins de 3 points, il ne peut pas être sauvegardée')
+                return
+            
+        fc.automatize(points=points, mode=mode)
+    
+    def view_mesh(self):
+        mode = "quad" if self._shift else "tri"
+
+        print(f"is shift on : {self._shift}")
+
+        self.remove_all_empty_figures()
+
         points = []
 
         for f in self.figures:
@@ -100,7 +141,63 @@ class Game:
                 return
         
 
-        fc.automatize(points=points, mode=mode)
+        fc.view(points=points, mode=mode, game=self)
+
+    
+    def save_as_geo(self):
+
+        self.remove_all_empty_figures()
+
+        points = []
+
+        for f in self.figures:
+            points.append(f.points)
+            if len(f.points) < 3:
+                print('Une des surfaces possède moins de 3 points, il ne peut pas être sauvegardée')
+                return
+
+        fc.save_as_geo(self.figures)
+
+    def remove_all_empty_figures(self):
+        while True:
+            still_have_empty_figures = False
+            for i, f in enumerate(self.figures):
+                if len(f.points) == 0:
+                    self.figures.pop(i)
+                    still_have_empty_figures = True
+                    break
+            
+            if not still_have_empty_figures:
+                break
+            
+            self.current_selected_figure = 0
+
+    def show_help(self):
+        print("-======= MENU EXPLICATIF =======-")
+        print('Points')
+        print("• Clic gauche        -> Ajout d'un point")
+        print("• Clic droit         -> Retire le dernier point de la figure")
+
+        print("\nAncrage")
+        print("• CTRL               -> Grand ancrage")
+        print("• SHIFT              -> Ancrage Moyen")
+        print("• CTRL + SHIFT       -> Petit ancrage")
+
+        print("\nGestion des figures")
+        print("• 'N'                -> Nouvelle figure")
+        print("• '🠕'                -> Figure suivante")
+        print("• '🠗'                -> Figure précédente")
+
+        print("\nSauvegarde")
+        print("• 'S'                -> Sauvegarde en .msh (Triangulaire)")
+        print("• SHIFT + 'S'        -> Sauvegarde en .msh (Quadrangulaire)")
+
+        print('\nVisualisation')
+        print("• 'V'                -> Visualiser sous GMSH (Triangulaire)")
+        print("• SHIFT + 'V'        -> Visualiser sous GMSH (Quadrangulaire)")
+
+        print("\n\n•• 'H' pour revoir cette liste ••")
+
 
     def add_new_figure(self):
         self.figures.append(Figure())
@@ -111,8 +208,6 @@ class Game:
 
     def previous_figure(self):
         self.current_selected_figure = (self.current_selected_figure - 1) % (len(self.figures))
-
-        
 
     def events(self):
         keys = pygame.key.get_pressed()
@@ -127,33 +222,41 @@ class Game:
             if event.type == pygame.KEYDOWN:
                 if pygame.key.name(event.key) == 'left shift'   : self._shift = True
                 if pygame.key.name(event.key) == 'left ctrl'    : self._ctrl  = True
-                if pygame.key.name(event.key) == 'r'            : self.remove_last_point()
-                if pygame.key.name(event.key) == 't'            : self.save("tri")
-                if pygame.key.name(event.key) == 'y'            : self.save("quad")
+                if pygame.key.name(event.key) == 's'            : self.save()
                 if pygame.key.name(event.key) == 'n'            : self.add_new_figure()
                 if pygame.key.name(event.key) == 'up'           : self.next_figure()
                 if pygame.key.name(event.key) == 'down'         : self.previous_figure()
+                if pygame.key.name(event.key) == 'g'            : self.save_as_geo()
+                if pygame.key.name(event.key) == 'v'            : self.view_mesh()
+                if pygame.key.name(event.key) == 'h'            : self.show_help()
             
             if event.type == pygame.KEYUP:
                 if pygame.key.name(event.key) == 'left shift': self._shift = False
                 if pygame.key.name(event.key) == 'left ctrl' : self._ctrl  = False
 
             if event.type == MOUSEBUTTONDOWN:
-                x, y = pygame.mouse.get_pos()
 
-                if self._ctrl and not self._shift:
-                    x = round(x / 100) * 100
-                    y = round(y / 100) * 100
+                if event.button == pygame.BUTTON_LEFT: ## PLACE UN POINT
+                    x, y = pygame.mouse.get_pos()
 
-                if not self._ctrl and self._shift:
-                    x = round(x / 50) * 50
-                    y = round(y / 50) * 50
-                
-                if self._ctrl and self._shift:
-                    x = round(x / 10) * 10
-                    y = round(y / 10) * 10
+                    if self._ctrl and not self._shift:
+                        x = round(x / 100) * 100
+                        y = round(y / 100) * 100
 
-                self.add_point(x, y)
+                    if not self._ctrl and self._shift:
+                        x = round(x / 50) * 50
+                        y = round(y / 50) * 50
+                    
+                    if self._ctrl and self._shift:
+                        x = round(x / 10) * 10
+                        y = round(y / 10) * 10
+
+                    self.add_point(x, y)
+                    return
+
+                if event.button == pygame.BUTTON_RIGHT: ## RETIRE LE DERNIER POINT
+                    self.remove_last_point()
+                    return
 
 class Figure:
     def __init__(self):
@@ -191,21 +294,7 @@ if __name__ == '__main__':
 
     game = Game()
 
-    print("-======= MENU EXPLICATIF =======-\n")
-    print("• Clique souris          -> Ajout de point")
-    print("• Maintenir CTRL         -> Grand Ancrage")
-    print("• Maintenir SHIFT        -> Moyen Ancrage")
-    print("• Maintenir SHIFT + CTRL -> Petit Ancrage")
-    print("• Bouton 'R'             -> Retire le dernier point")
-    # print("• Bouton 'S'             -> Sauvegarder en un fichier MSH")
-    print("• Bouton 'T'             -> Sauvegarder un fichier MSH avec un maillage triangulaire")
-    print("• Bouton 'Y'             -> Sauvegarder un fichier MSH avec un maillage quadrangulaire")
-    print("• Bouton 'N'             -> Nouvelle figure")
-    print("• Bouton 'up'            -> Figure suivante")
-    print("• Bouton 'down'          -> Figure précédente")
+    print("• AFFICHER LE MENU EXPLICATIF -> 'H'")
 
     while True:
-        game.refresh()
-        game.events()
-
-        pygame.display.flip()
+        game.display()
