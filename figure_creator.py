@@ -1,14 +1,11 @@
 import multiprocessing.process
 import gmsh
-import math # Pour la création de l'étoile dans le if __name__
 
 from datetime import datetime
 from typing import Literal
 
 import creator
-import pygame
 
-import os
 import multiprocessing
 
 class FIGURE_CREATOR:
