@@ -36,18 +36,18 @@
 
 ### Sauvegardes
 #### > .msh
-• **'S'** : Sauvegarde en .msh (triangulaire)\
-• **SHIFT + 'S'** : Sauvegarde en .msh (quadrangulaire)
+• **'S'** : Sauvegarde en .msh\
+• **SHIFT + 'S'** : Sauvegarde en .msh (avec subdivision)
 
 #### > .geo
 • ***Work In Progress***
 
 ### Visualisation
-• **'V'** : Visualiser sous GMSH (triangulaire)\
-• **SHIFT + 'V'** Visualiser sous GMSH (quadrangulaire)\
+• **'V'** : Visualiser sous GMSH\
+• **SHIFT + 'V'** Visualiser sous GMSH (avec subdivision)
 
 ### Gestion des algorithmes
-• ***Work In Prograss***
+• **'A'** : Changer d'algorithme (affiche l'algoritme en cours dans la console)
 
 ## /!\
 Le but ici est de créer la forme globale et pas directement le maillage. 

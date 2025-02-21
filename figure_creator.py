@@ -45,19 +45,19 @@ class FIGURE_CREATOR:
             
         # Créer les loops pour chaque surfaces
         loops = []
-        print(self.points)
-        print(lines)
         for i in range(len(lines)):
             loops.append(gmsh.model.geo.add_curve_loop(lines[i]))
 
         # Créer la surface à partir des loops
         surface = gmsh.model.geo.add_plane_surface(loops)
 
-    def finilize(self, mode : Literal['tri', 'quad']):
+    def finilize(self, mode : Literal['tri', 'quad'], algorithm : int):
         if mode == 'quad':
-            gmsh.option.set_number("Mesh.SubdivisionAlgorithm", 1)
+            gmsh.option.setNumber("Mesh.SubdivisionAlgorithm", 1)
         else:
-            gmsh.option.set_number("Mesh.SubdivisionAlgorithm", 0)
+            gmsh.option.setNumber("Mesh.SubdivisionAlgorithm", 0)
+        
+        gmsh.option.setNumber("Mesh.Algorithm", algorithm)
 
         ## Créer le maillage
         gmsh.model.geo.synchronize()
@@ -82,11 +82,9 @@ class FIGURE_CREATOR:
                     f.write(f'Point({id}) = {{{pt[0]}, {pt[1]}, 0, 1.0}}')
 
 
-
-
 ##########################################################################
 
-def automatize(points, mode: Literal['tri', 'quad'] = "tri"):
+def automatize(points, mode: Literal['tri', 'quad'] = "tri", algorithm : int = 6):
     fc = FIGURE_CREATOR()
     fc.initialize()
 
@@ -100,14 +98,14 @@ def automatize(points, mode: Literal['tri', 'quad'] = "tri"):
             fc.add_fig()
 
     fc.create_surface()
-    fc.finilize(mode)
+    fc.finilize(mode, algorithm=algorithm)
 
     if mode == 'tri':
         fc.save(f'mesh_tri_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}')
     else:
         fc.save(f'mesh_quad_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}')
 
-def view(points, mode: Literal['tri', 'quad'] = "tri", game : creator.Game = None):
+def view(points, mode: Literal['tri', 'quad'] = "tri", game : creator.Game = None, algorithm : int = 6):
 
     if game == None:
         return
@@ -125,7 +123,7 @@ def view(points, mode: Literal['tri', 'quad'] = "tri", game : creator.Game = Non
             fc.add_fig()
 
     fc.create_surface()
-    fc.finilize(mode)
+    fc.finilize(mode, algorithm = algorithm)
 
     game.display_switch(False)
 
@@ -155,20 +153,20 @@ def save_as_geo(points):
 if __name__ == "__main__":
     """ Création d'une étoile """ # Obsolète
 
-    # Initialisation des Variables :
-    points = []
-    center_x, center_y = 2.5, 2.5
-    outer_radius = 2
-    inner_radius = 0.9
-    angle_offset = math.radians(90)
+    # # Initialisation des Variables :
+    # points = []
+    # center_x, center_y = 2.5, 2.5
+    # outer_radius = 2
+    # inner_radius = 0.9
+    # angle_offset = math.radians(90)
 
-    # Mise en place des points de l'étoile
-    for i in range(10):
-        radius = outer_radius if i % 2 == 0 else inner_radius
-        angle = angle_offset + i * math.pi / 5
-        x = center_x + radius * math.cos(angle)
-        y = center_y + radius * math.sin(angle)
-        points.append((x, y))
+    # # Mise en place des points de l'étoile
+    # for i in range(10):
+    #     radius = outer_radius if i % 2 == 0 else inner_radius
+    #     angle = angle_offset + i * math.pi / 5
+    #     x = center_x + radius * math.cos(angle)
+    #     y = center_y + radius * math.sin(angle)
+    #     points.append((x, y))
     
-    automatize(points, 'tri') # Récupère un maillage triangulaire de l'étoile
-    automatize(points, 'quad') # Récupère un mallage quandrangulaire de l'étoile
+    # automatize(points, 'tri') # Récupère un maillage triangulaire de l'étoile
+    # automatize(points, 'quad') # Récupère un mallage quandrangulaire de l'étoile

@@ -27,7 +27,7 @@ class Game:
         self.figures                    = []
         self.figures.append(Figure())
         self.current_selected_figure    = 0
-        
+        self.algorithm                  = 5
     
     def initialize(self):
         pygame.init()
@@ -123,7 +123,7 @@ class Game:
                 print('Une des surfaces possède moins de 3 points, il ne peut pas être sauvegardée')
                 return
             
-        fc.automatize(points=points, mode=mode)
+        fc.automatize(points=points, mode=mode, algorithm=(self.algorithm + 1))
     
     def view_mesh(self):
         mode = "quad" if self._shift else "tri"
@@ -141,7 +141,7 @@ class Game:
                 return
         
 
-        fc.view(points=points, mode=mode, game=self)
+        fc.view(points=points, mode=mode, game=self, algorithm=(self.algorithm + 1))
 
     
     def save_as_geo(self):
@@ -189,12 +189,15 @@ class Game:
         print("• '🠗'                -> Figure précédente")
 
         print("\nSauvegarde")
-        print("• 'S'                -> Sauvegarde en .msh (Triangulaire)")
-        print("• SHIFT + 'S'        -> Sauvegarde en .msh (Quadrangulaire)")
+        print("• 'S'                -> Sauvegarde en .msh")
+        print("• SHIFT + 'S'        -> Sauvegarde en .msh (avec subdivision)")
 
         print('\nVisualisation')
-        print("• 'V'                -> Visualiser sous GMSH (Triangulaire)")
-        print("• SHIFT + 'V'        -> Visualiser sous GMSH (Quadrangulaire)")
+        print("• 'V'                -> Visualiser sous GMSH")
+        print("• SHIFT + 'V'        -> Visualiser sous GMSH (avec subdivision)")
+
+        print('\nAlgorithmes')
+        print("• 'A'                -> Changer d'algorithme")
 
         print("\n\n•• 'H' pour revoir cette liste ••")
 
@@ -208,6 +211,23 @@ class Game:
 
     def previous_figure(self):
         self.current_selected_figure = (self.current_selected_figure - 1) % (len(self.figures))
+
+    def change_algorithm(self):
+        self.algorithm = (self.algorithm + 1) % 11
+
+        print('Algorithme sélectionné: ', end='')
+
+        if self.algorithm == 0 : print("MeshAdapt")
+        if self.algorithm == 1 : print("Automatic")
+        if self.algorithm == 2 : print("Initial mesh only")
+        if self.algorithm == 3 : self.algorithm += 1
+        if self.algorithm == 4 : print("Delaunay")
+        if self.algorithm == 5 : print("Frontal-Delaunay")
+        if self.algorithm == 6 : print("BAMG")
+        if self.algorithm == 7 : print("Frontal-Delaunay for Quads")
+        if self.algorithm == 8 : print("Packing of Parallelograms")
+        if self.algorithm == 9 : self.algorithm += 1
+        if self.algorithm == 10 : print("Quasi-structured Quad")
 
     def events(self):
         keys = pygame.key.get_pressed()
@@ -229,6 +249,7 @@ class Game:
                 if pygame.key.name(event.key) == 'g'            : self.save_as_geo()
                 if pygame.key.name(event.key) == 'v'            : self.view_mesh()
                 if pygame.key.name(event.key) == 'h'            : self.show_help()
+                if pygame.key.name(event.key) == 'a'            : self.change_algorithm()
             
             if event.type == pygame.KEYUP:
                 if pygame.key.name(event.key) == 'left shift': self._shift = False
