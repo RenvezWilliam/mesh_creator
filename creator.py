@@ -5,45 +5,49 @@ import sys
 import figure_creator as fc
 
 ## Initialisation des couleurs ##
-WHITE           = (255, 255, 255)
-ANCHOR_BIG      = (100, 100, 100)
-ANCHOR_NORMAL   = (150, 150, 150)
-ANCHOR_SMALL    = (200, 200, 200)
+WHITE               = (255, 255, 255)
+ANCHOR_BIG          = (100, 100, 100)
+ANCHOR_NORMAL       = (150, 150, 150)
+ANCHOR_SMALL        = (200, 200, 200)
 
-CURRENT_POINT   = (100, 100, 255)
-LAST_POINT      = (255, 200, 50)
-CURRENT_LINE    = (200, 50, 255)
-LAST_LINE       = (255, 50, 50)
+CURRENT_POINT       = (100, 100, 255)
+LAST_POINT          = (255, 200, 50)
+CURRENT_LINE        = (200, 50, 255)
+LAST_LINE           = (255, 50, 50)
+HIGHTLIGHT_POINT    = (255, 0, 0)
 
-OTHER_POINT     = (204, 152, 255)
-OTHER_LINE      = (204, 152, 255)
+OTHER_POINT         = (204, 152, 255)
+OTHER_LINE          = (204, 152, 255)
 
 class Game:
 
     def __init__(self):
-        self.initialize()
-
+        self.mode                       = "ligne"
+        self.ancrage                    = 0
         self._is_on                     = True
         self.figures                    = []
         self.figures.append(Figure())
         self.current_selected_figure    = 0
         self.algorithm                  = 5
+
+        self.initialize()
     
     def initialize(self):
         pygame.init()
         self.size                       = self.width, self.height = 500, 500
         self.window                     = pygame.display.set_mode(self.size)
         self.clock                      = pygame.time.Clock().tick(30)
-        self.title                      = pygame.display.set_caption('Editeur de figure')
+        self.title                      = pygame.display.set_caption(f'Editeur de figure ({self.mode})')
 
         self._ctrl, self._shift         = False, False
 
     def refresh(self):
         self.window.fill(WHITE)
 
-        if self._ctrl and not self._shift   : self.draw_large_anchor_lines()
-        if not self._ctrl and self._shift   : self.draw_anchor_lines()
-        if self._ctrl and self._shift       : self.draw_small_anchor_lines()
+        # Dessine les encrages
+        if self.ancrage == 1: self.draw_large_anchor_lines()
+        if self.ancrage == 2: self.draw_anchor_lines()
+        if self.ancrage == 3: self.draw_small_anchor_lines()
 
         self.draw()
     
@@ -93,7 +97,8 @@ class Game:
 
             pygame.display.flip()
 
-    def draw(self): # Pour toutes les figures, lance les dessins
+    def draw(self): 
+        # Pour toutes les figures, lance les dessins
         for i in range(len(self.figures)):
             self.figures[i].draw_points(self.window, False) if self.current_selected_figure != i else self.figures[i].draw_points(self.window, True)
             self.figures[i].draw_lines(self.window, False) if self.current_selected_figure != i else self.figures[i].draw_lines(self.window, True)
@@ -178,28 +183,28 @@ class Game:
         print("• Clic gauche        -> Ajout d'un point")
         print("• Clic droit         -> Retire le dernier point de la figure")
 
-        print("\nAncrage")
+        print("Ancrage")
         print("• CTRL               -> Grand ancrage")
         print("• SHIFT              -> Ancrage Moyen")
         print("• CTRL + SHIFT       -> Petit ancrage")
 
-        print("\nGestion des figures")
+        print("Gestion des figures")
         print("• 'N'                -> Nouvelle figure")
-        print("• '🠕'                -> Figure suivante")
-        print("• '🠗'                -> Figure précédente")
+        print("• 'up'               -> Figure suivante")
+        print("• 'down'             -> Figure précédente")
 
-        print("\nSauvegarde")
+        print("Sauvegarde")
         print("• 'S'                -> Sauvegarde en .msh")
         print("• SHIFT + 'S'        -> Sauvegarde en .msh (avec subdivision)")
 
-        print('\nVisualisation')
+        print('Visualisation')
         print("• 'V'                -> Visualiser sous GMSH")
         print("• SHIFT + 'V'        -> Visualiser sous GMSH (avec subdivision)")
 
-        print('\nAlgorithmes')
+        print('Algorithmes')
         print("• 'A'                -> Changer d'algorithme")
 
-        print("\n\n•• 'H' pour revoir cette liste ••")
+        print("\n•• 'H' pour revoir cette liste ••")
 
 
     def add_new_figure(self):
@@ -213,21 +218,33 @@ class Game:
         self.current_selected_figure = (self.current_selected_figure - 1) % (len(self.figures))
 
     def change_algorithm(self):
-        self.algorithm = (self.algorithm + 1) % 11
+        self.algorithm = (self.algorithm + 1) % 11 if not self._shift else (self.algorithm - 1) % 11
 
         print('Algorithme sélectionné: ', end='')
 
+        if self.algorithm == 3 : self.algorithm = (self.algorithm + 1) if not self._shift else (self.algorithm - 1)
+        if self.algorithm == 9 : self.algorithm = (self.algorithm + 1) if not self._shift else (self.algorithm - 1)
+        
         if self.algorithm == 0 : print("MeshAdapt")
         if self.algorithm == 1 : print("Automatic")
         if self.algorithm == 2 : print("Initial mesh only")
-        if self.algorithm == 3 : self.algorithm += 1
         if self.algorithm == 4 : print("Delaunay")
         if self.algorithm == 5 : print("Frontal-Delaunay")
         if self.algorithm == 6 : print("BAMG")
         if self.algorithm == 7 : print("Frontal-Delaunay for Quads")
         if self.algorithm == 8 : print("Packing of Parallelograms")
-        if self.algorithm == 9 : self.algorithm += 1
         if self.algorithm == 10 : print("Quasi-structured Quad")
+    
+    def change_mode(self):
+        if self.mode == "ligne":
+            self.mode = "arc de cercle"
+        elif self.mode == "arc de cercle":
+            self.mode = "ligne"
+        
+        self.title == pygame.display.set_caption(f'Editeur de figure ({self.mode})')
+    
+    def change_anchor(self):
+        self.ancrage = (self.ancrage + 1) % 4 if not self._shift == True else (self.ancrage - 1) % 4
 
     def events(self):
         keys = pygame.key.get_pressed()
@@ -250,25 +267,27 @@ class Game:
                 if pygame.key.name(event.key) == 'v'            : self.view_mesh()
                 if pygame.key.name(event.key) == 'h'            : self.show_help()
                 if pygame.key.name(event.key) == 'a'            : self.change_algorithm()
+                if pygame.key.name(event.key) == 'm'            : self.change_mode()
+                if pygame.key.name(event.key) == 'z'            : self.change_anchor()
             
             if event.type == pygame.KEYUP:
-                if pygame.key.name(event.key) == 'left shift': self._shift = False
-                if pygame.key.name(event.key) == 'left ctrl' : self._ctrl  = False
+                if pygame.key.name(event.key) == 'left shift'   : self._shift = False
+                if pygame.key.name(event.key) == 'left ctrl'    : self._ctrl  = False
 
             if event.type == MOUSEBUTTONDOWN:
 
                 if event.button == pygame.BUTTON_LEFT: ## PLACE UN POINT
                     x, y = pygame.mouse.get_pos()
 
-                    if self._ctrl and not self._shift:
+                    if self.ancrage == 1:
                         x = round(x / 100) * 100
                         y = round(y / 100) * 100
 
-                    if not self._ctrl and self._shift:
+                    if self.ancrage == 2:
                         x = round(x / 50) * 50
                         y = round(y / 50) * 50
                     
-                    if self._ctrl and self._shift:
+                    if self.ancrage == 3:
                         x = round(x / 10) * 10
                         y = round(y / 10) * 10
 
@@ -315,7 +334,7 @@ if __name__ == '__main__':
 
     game = Game()
 
-    print("• AFFICHER LE MENU EXPLICATIF -> 'H'")
+    print(f"• AFFICHER LE MENU EXPLICATIF -> 'H'")
 
     while True:
         game.display()
