@@ -69,7 +69,7 @@ class FIGURE_CREATOR:
     
     def save_as_geo(self):
         # Sauvegarde // Devra être modifié lorsque les quarts de cercles seront en place
-        dt = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+        dt = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         # Placement de tous les points
         id = 1
 
@@ -82,53 +82,68 @@ class FIGURE_CREATOR:
 ##########################################################################
 
 def automatize(points, mode: Literal['tri', 'quad'] = "tri", algorithm : int = 6):
-    fc = FIGURE_CREATOR()
-    fc.initialize()
+    try :
+        fc = FIGURE_CREATOR()
+        fc.initialize()
 
-    for i, pp in enumerate(points):
-        
-        for p in pp:
-            p = (float(p[0] / 100), float(500 - p[1]/100))
-            fc.add_point(p[0], p[1])
-        
-        if i != len(points) - 1:
-            fc.add_fig()
+        for i, pp in enumerate(points):
+            
+            for p in pp:
+                p = (float(p[0] / 100), float(500 - p[1]/100))
+                fc.add_point(p[0], p[1])
+            
+            if i != len(points) - 1:
+                fc.add_fig()
 
-    fc.create_surface()
-    fc.finilize(mode, algorithm=algorithm)
+        fc.create_surface()
+        fc.finilize(mode, algorithm=algorithm)
 
-    if mode == 'tri':
-        fc.save(f'mesh_tri_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}')
-    else:
-        fc.save(f'mesh_quad_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}')
+        if mode == 'tri':
+            fc.save(f"mesh_tri_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
+        else:
+            fc.save(f"mesh_quad_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
+
+        return True
+    
+    except Exception as e:
+
+        print(f"\033[1mLa sauvegarde n'est pas possible dù à une erreur : \033[91m{e}\033[0m")
+        return False
 
 def view(points, mode: Literal['tri', 'quad'] = "tri", game : creator.Game = None, algorithm : int = 6):
+    try :
+        if game == None:
+            return
 
-    if game == None:
-        return
+        fc = FIGURE_CREATOR()
+        fc.initialize()
 
-    fc = FIGURE_CREATOR()
-    fc.initialize()
+        for i, pp in enumerate(points):
+            
+            for p in pp:
+                p = (float(p[0] / 100), float(500 - p[1]/100))
+                fc.add_point(p[0], p[1])
+            
+            if i != len(points) - 1:
+                fc.add_fig()
 
-    for i, pp in enumerate(points):
-        
-        for p in pp:
-            p = (float(p[0] / 100), float(500 - p[1]/100))
-            fc.add_point(p[0], p[1])
-        
-        if i != len(points) - 1:
-            fc.add_fig()
+        fc.create_surface()
+        fc.finilize(mode, algorithm = algorithm)
 
-    fc.create_surface()
-    fc.finilize(mode, algorithm = algorithm)
+        game.display_switch(False)
 
-    game.display_switch(False)
+        gmsh_process = multiprocessing.Process(target=fc.view_mesh)
+        gmsh_process.start()
+        gmsh_process.join()
 
-    gmsh_process = multiprocessing.Process(target=fc.view_mesh)
-    gmsh_process.start()
-    gmsh_process.join()
+        game.display_switch(True)
 
-    game.display_switch(True)
+        return True
+    
+    except Exception as e:
+        print(f"\033[1mLa visualisation n'est pas possible dù à une erreur : \033[91m{e}\033[0m")
+
+        return False
 
 def save_as_geo(points):
     fc = FIGURE_CREATOR()

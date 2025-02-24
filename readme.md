@@ -24,15 +24,17 @@
 • **Clic gauche** : Ajout d'un point\
 • **Clic droit** : Retire le dernier point de la figure en cours
 
+### Modes
+• **'M'** : Basculer entre le mode 'ligne' et 'arc de cercle'
+
 ### Ancrage
-• **CTRL** : Grand ancrage\
-• **SHIFT** : Moyen ancrage\
-• **CTRL + SHIFT** : Petit ancrage
+• **'Z'** : Basculer l'ancrage en mode Grand -> Moyen -> Petit -> Désactivé\
+• **SHIFT + 'Z'** : Basculer l'ancrage en mode Grand <- Moyen <- Petit <- Désactivé
 
 ### Gestion des figures
 • **'N'** : Nouvelle figure\
-• **'🠕'** : Figure suivante\
-• **'🠗'** : Figure précédente
+• **'up'** : Figure suivante\
+• **'down'** : Figure précédente
 
 ### Sauvegardes
 #### > .msh
