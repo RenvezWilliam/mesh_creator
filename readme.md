@@ -19,20 +19,20 @@
 ``$ python3 creator.py``
 
 ## Fonctionnement
-
+*Les touches présentées ici sont celles utilisées par défaut*
 ### Points
 • **Clic gauche** : Ajout d'un point\
 • **Clic droit** : Retire le dernier point de la figure en cours
 
 ### Modes
-• **'M'** : Basculer entre le mode 'ligne' et 'arc de cercle'
+• **'R'** : Basculer entre le mode 'ligne' et 'arc de cercle'
 
 ### Ancrage
 • **'Z'** : Basculer l'ancrage en mode Grand -> Moyen -> Petit -> Désactivé\
 • **SHIFT + 'Z'** : Basculer l'ancrage en mode Grand <- Moyen <- Petit <- Désactivé
 
 ### Gestion des figures
-• **'N'** : Nouvelle figure\
+• **'E'** : Nouvelle figure\
 • **'up'** : Figure suivante\
 • **'down'** : Figure précédente
 
