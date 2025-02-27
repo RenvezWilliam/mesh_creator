@@ -42,7 +42,7 @@
 • **SHIFT + 'S'** : Sauvegarde en .msh (avec subdivision)
 
 #### > .geo
-• ***Work In Progress***
+• **'G'**: Sauvegarde en .geo
 
 ### Visualisation
 • **'V'** : Visualiser sous GMSH\

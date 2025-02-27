@@ -6,18 +6,29 @@ from typing import Literal
 
 import creator
 
+from creator import Figure
+
 import multiprocessing
 
 class FIGURE_CREATOR:
     def __init__(self):
-        self.points  = []
-        self.surface = None
-        self.fig_id  = 0
+        self.points     = []
+        self.points_arc = []
+        self.lines      = []
+        self.arcs       = []
+        self.surface    = None
+        self.fig_id     = 0
 
         self.points.append([])
+        self.points_arc.append([])
+        self.lines.append([])
+        self.arcs.append([])
     
     def add_fig(self):
         self.points.append([])
+        self.points_arc.append([])
+        self.lines.append([])
+        self.arcs.append([])
         self.fig_id += 1
 
     def initialize(self):
@@ -27,28 +38,33 @@ class FIGURE_CREATOR:
 
     def add_point(self, x, y):
         self.points[self.fig_id].append(gmsh.model.geo.add_point(x, y, 0, 1))
+    
+    def add_point_arc(self, x, y):
+        self.points_arc[self.fig_id].append(gmsh.model.geo.add_point(x, y, 0, 1))
+    
+    def add_line(self, line):
+        self.lines[self.fig_id].append(gmsh.model.geo.addLine(self.points[self.fig_id][line[0]], self.points[self.fig_id][line[1]]))
+
+    def add_arc(self, arc):
+        self.arcs[self.fig_id].append(gmsh.model.geo.addCircleArc(self.points[self.fig_id][arc[0][0]], self.points_arc[self.fig_id][arc[1]], self.points[self.fig_id][arc[0][1]]))
 
     def create_surface(self):
-        # Créer les lignes pour toutes les surfaces.
-
-        
-        lines = []
-        for i in range(len(self.points)):
-            lines.append([])
-            for j in range(len(self.points[i]) - 1):        
-                lines[i].append(gmsh.model.geo.addLine(self.points[i][j], self.points[i][j + 1]))
-            lines[i].append(gmsh.model.geo.addLine(self.points[i][-1], self.points[i][0]))
-            
-            
-        # Créer les loops pour chaque surfaces
         loops = []
-        for i in range(len(lines)):
-            loops.append(gmsh.model.geo.add_curve_loop(lines[i]))
+        for i in range(self.fig_id):
+            
+            self.lines[i].append(gmsh.model.geo.addLine(self.points[i][-1], self.points[i][0])) # Ajout de la dernière ligne
 
-        # Créer la surface à partir des loops
-        surface = gmsh.model.geo.add_plane_surface(loops)
+            form = sorted(self.lines[i] + self.arcs[i]) # Créer la forme avec les ID des lignes et arcs de cercles remise dans l'ordre
 
-    def finilize(self, mode : Literal['tri', 'quad'], algorithm : int):
+            print(f"Form : {form}")
+
+            loops.append(gmsh.model.geo.addCurveLoop(form))
+        
+        print(f"loops : {loops}")
+        surface = gmsh.model.geo.addPlaneSurface(loops)
+    
+
+    def finilize(self, mode : Literal['tri', 'quad'] = 'tri', algorithm : int = 6):
         if mode == 'quad':
             gmsh.option.setNumber("Mesh.SubdivisionAlgorithm", 1)
         else:
@@ -65,52 +81,65 @@ class FIGURE_CREATOR:
         gmsh.fltk.run()
 
     def save(self, filename):
-        gmsh.write(filename+'.msh')
+        gmsh.write(filename+'.geo_unrolled')
     
-    def save_as_geo(self):
-        # Sauvegarde // Devra être modifié lorsque les quarts de cercles seront en place
-        dt = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        # Placement de tous les points
-        id = 1
+    def save_as_geo(self, filename):
+        gmsh.write(filename+'.geo_unrolled')
+                
 
-        with open(f'./figure_{dt}.geo', 'w') as f:
-            for pts_list in self.points:
-                for pt in pts_list:
-                    f.write(f'Point({id}) = {{{pt[0]}, {pt[1]}, 0, 1.0}}')
-
+        
 
 ##########################################################################
 
-def automatize(points, mode: Literal['tri', 'quad'] = "tri", algorithm : int = 6):
-    try :
-        fc = FIGURE_CREATOR()
-        fc.initialize()
+def automatize(figs : list[Figure], mode: Literal['tri', 'quad'] = "tri", algorithm : int = 6):
+    fc = FIGURE_CREATOR()
+    fc.initialize()
 
-        for i, pp in enumerate(points):
-            
-            for p in pp:
-                p = (float(p[0] / 100), float(500 - p[1]/100))
-                fc.add_point(p[0], p[1])
-            
-            if i != len(points) - 1:
+    try:
+        for i, fig in enumerate(figs):
+
+            ## Ajouter les points un à un
+            for pt in fig.points:
+                pt = (float(pt[0] / 100), float(500 - pt[1] / 100))
+                fc.add_point(pt[0], pt[1])
+
+            ## Ajouter les points arc un à un
+            for pta in fig.points_arc:
+                pta = (float(pta[0] / 100), float(500 - pta[1] / 100))
+                fc.add_point_arc(pta[0], pta[1])
+
+            l, a = 0, 0
+            ## Ajouter les lignes et les arcs dans l'ordre
+            for i in range(len(fig.order)):
+                if fig.order[i] == 'line':
+                    fc.add_line(fig.lines[l])
+                    l += 1
+                elif fig.order[i] == 'arc':
+                    fc.add_arc(fig.arc[a])
+                    a += 1
+
+            ## S'il reste des figures -> créer une nouvelle figure
+            if i != len(figs) - 1:
                 fc.add_fig()
 
-        fc.create_surface()
-        fc.finilize(mode, algorithm=algorithm)
+            ## Créer la/les surface(s) puis finaliser
+            fc.create_surface()
 
-        if mode == 'tri':
-            fc.save(f"mesh_tri_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
-        else:
-            fc.save(f"mesh_quad_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
+            ## save selon le mode
+            fc.finilize(mode, algorithm = algorithm)
 
+            if mode == 'tri':
+                fc.save(f"mesh_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
+            else:
+                fc.save(f"mesh_sub_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
+            
         return True
-    
-    except Exception as e:
 
-        print(f"\033[1mLa sauvegarde n'est pas possible dù à une erreur : \033[91m{e}\033[0m")
+    except Exception as e:
+        print(f"\033[1mLa sauvegarde n'est pas possible dù à une erreur : \033[0m\033[91m{e}\033[0m")
         return False
 
-def view(points, mode: Literal['tri', 'quad'] = "tri", game : creator.Game = None, algorithm : int = 6):
+def view(figs : list[Figure], mode: Literal['tri', 'quad'] = "tri", game : creator.Game = None, algorithm : int = 6):
     try :
         if game == None:
             return
@@ -118,17 +147,37 @@ def view(points, mode: Literal['tri', 'quad'] = "tri", game : creator.Game = Non
         fc = FIGURE_CREATOR()
         fc.initialize()
 
-        for i, pp in enumerate(points):
-            
-            for p in pp:
-                p = (float(p[0] / 100), float(500 - p[1]/100))
-                fc.add_point(p[0], p[1])
-            
-            if i != len(points) - 1:
+        for i, fig in enumerate(figs):
+
+            ## Ajouter les points un à un
+            for pt in fig.points:
+                pt = (float(pt[0] / 100), float(500 - pt[1] / 100))
+                fc.add_point(pt[0], pt[1])
+
+            ## Ajouter les points arc un à un
+            for pta in fig.points_arc:
+                pta = (float(pta[0] / 100), float(500 - pta[1] / 100))
+                fc.add_point_arc(pta[0], pta[1])
+
+            l, a = 0, 0
+            ## Ajouter les lignes et les arcs dans l'ordre
+            for i in range(len(fig.order)):
+                if fig.order[i] == 'line':
+                    fc.add_line(fig.lines[l])
+                    l += 1
+                elif fig.order[i] == 'arc':
+                    fc.add_arc(fig.arc[a])
+                    a += 1
+
+            ## S'il reste des figures -> créer une nouvelle figure
+            if i != len(figs) - 1:
                 fc.add_fig()
 
-        fc.create_surface()
-        fc.finilize(mode, algorithm = algorithm)
+            ## Créer la/les surface(s) puis finaliser
+            fc.create_surface()
+
+            ## save selon le mode
+            fc.finilize(mode, algorithm = algorithm)
 
         game.display_switch(False)
 
@@ -141,23 +190,54 @@ def view(points, mode: Literal['tri', 'quad'] = "tri", game : creator.Game = Non
         return True
     
     except Exception as e:
-        print(f"\033[1mLa visualisation n'est pas possible dù à une erreur : \033[91m{e}\033[0m")
+        print(f"\033[1mLa visualisation n'est pas possible dù à une erreur : \033[0m\033[91m{e}\033[0m")
 
         return False
 
-def save_as_geo(points):
+def save_as_geo(figs : list[Figure], mode: Literal['tri', 'quad'] = "tri", game : creator.Game = None, algorithm : int = 6):
     fc = FIGURE_CREATOR()
+    fc.initialize()
 
-    for i, pp in enumerate(points):
-        
-        for p in pp:
-            p = (float(p[0] / 100), float(500 - p[1]/100))
-            fc.add_point(p[0], p[1])
-        
-        if i != len(points) - 1:
-            fc.add_fig()
+    try:
+        for i, fig in enumerate(figs):
 
-    fc.save_as_geo()
+            ## Ajouter les points un à un
+            for pt in fig.points:
+                pt = (float(pt[0] / 100), float(500 - pt[1] / 100))
+                fc.add_point(pt[0], pt[1])
+
+            ## Ajouter les points arc un à un
+            for pta in fig.points_arc:
+                pta = (float(pta[0] / 100), float(500 - pta[1] / 100))
+                fc.add_point_arc(pta[0], pta[1])
+
+            l, a = 0, 0
+            ## Ajouter les lignes et les arcs dans l'ordre
+            for i in range(len(fig.order)):
+                if fig.order[i] == 'line':
+                    fc.add_line(fig.lines[l])
+                    l += 1
+                elif fig.order[i] == 'arc':
+                    fc.add_arc(fig.arc[a])
+                    a += 1
+
+            ## S'il reste des figures -> créer une nouvelle figure
+            if i != len(figs) - 1:
+                fc.add_fig()
+
+            ## Créer la/les surface(s) puis finaliser
+            fc.create_surface()
+
+            ## save 
+            fc.finilize()
+
+            
+            fc.save_as_geo(f"geo_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
+        return True
+
+    except Exception as e:
+        print(f"\033[1mLa sauvegarde n'est pas possible : \033[0m\033[91m{e}\033[0m")
+        return False
 
 
 ##########################################################################

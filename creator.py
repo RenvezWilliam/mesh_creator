@@ -1,8 +1,16 @@
 import pygame
+import math
 from pygame.locals import *
 import sys
 
 import figure_creator as fc
+
+""" 
+FINIR : Create_surface dans figure_creator
++ Finir sauvegarde + visualisation
++ Faire sauvegarde .geo
+"""
+
 
 ## Initialisation des couleurs ##
 WHITE               = (255, 255, 255)
@@ -14,10 +22,12 @@ CURRENT_POINT       = (100, 100, 255)
 LAST_POINT          = (255, 200, 50)
 CURRENT_LINE        = (200, 50, 255)
 LAST_LINE           = (255, 50, 50)
-HIGHTLIGHT_POINT    = (255, 0, 0)
+CURRENT_ARC_POINT   = (224, 152, 255)
+ARC_PREVIEW         = (255, 153, 255)
 
 OTHER_POINT         = (204, 152, 255)
 OTHER_LINE          = (204, 152, 255)
+OTHER_ARC_POINT     = (230, 250, 255)
 
 class Game:
 
@@ -29,17 +39,20 @@ class Game:
         self.figures.append(Figure())
         self.current_selected_figure    = 0
         self.algorithm                  = 5
+        self.had_error                  = False
 
         self.initialize()
     
     def initialize(self):
         pygame.init()
-        self.size                       = self.width, self.height = 500, 500
-        self.window                     = pygame.display.set_mode(self.size)
-        self.clock                      = pygame.time.Clock().tick(30)
-        self.title                      = pygame.display.set_caption(f'Editeur de figure ({self.mode})')
 
-        self._ctrl, self._shift         = False, False
+        self.size                   = self.width, self.height = 500, 500
+        self.window                 = pygame.display.set_mode(self.size)
+        self.clock                  = pygame.time.Clock().tick(30)
+        self.title                  = pygame.display.set_caption(f'Editeur de figure ({self.mode})')
+
+        self._ctrl, self._shift     = False, False
+
 
     def refresh(self):
         self.window.fill(WHITE)
@@ -77,7 +90,7 @@ class Game:
                 is_present = True
         
         if not is_present:
-            self.figures[self.current_selected_figure].add_point(x, y)
+            self.figures[self.current_selected_figure].add_point(x, y, self.mode)
 
     def display_switch(self, _on : bool = None):
         if _on == None:
@@ -92,21 +105,22 @@ class Game:
 
     def display(self):
         if self._is_on:
-            self.refresh()
             self.events()
+            self.refresh()
+            # self.test()
 
             pygame.display.flip()
 
     def draw(self): 
         # Pour toutes les figures, lance les dessins
         for i in range(len(self.figures)):
-            self.figures[i].draw_points(self.window, False) if self.current_selected_figure != i else self.figures[i].draw_points(self.window, True)
-            self.figures[i].draw_lines(self.window, False) if self.current_selected_figure != i else self.figures[i].draw_lines(self.window, True)
+            for i in range(len(self.figures)):
+                self.figures[i].draw(self.window, False) if self.current_selected_figure != i else self.figures[i].draw(self.window, True)
+            # self.figures[i].draw_points(self.window, False) if self.current_selected_figure != i else self.figures[i].draw_points(self.window, True)
+            # self.figures[i].draw_lines(self.window, False) if self.current_selected_figure != i else self.figures[i].draw_lines(self.window, True)
 
     def remove_last_point(self): ## IF NOT remove_last_point() pour la figure en cours -> regarde si on possède plus d'une figure. si oui, supprime la figure.
-        if self.figures[self.current_selected_figure].remove_last_point():
-            pass
-        else:
+        if not self.figures[self.current_selected_figure].remove_last_point():
             if len(self.figures) > 1:
                 self.remove_current_figure()
                 print('figure supprimée')
@@ -116,6 +130,11 @@ class Game:
         self.current_selected_figure = self.current_selected_figure % len(self.figures)
 
     def save(self):
+
+        if self.had_error:
+            print("Vous ne pouvez plus sauvegarder qu'en .geo à cause d'une erreur précédente.")
+            return
+
         mode = "quad" if self._shift else "tri"
 
         self.remove_all_empty_figures()
@@ -128,12 +147,17 @@ class Game:
                 print('Une des surfaces possède moins de 3 points, il ne peut pas être sauvegardée')
                 return
             
-        fc.automatize(points=points, mode=mode, algorithm=(self.algorithm + 1))
+        if not fc.automatize(self.figures, mode=mode, algorithm=(self.algorithm + 1)):
+            self.had_error = True
     
     def view_mesh(self):
-        mode = "quad" if self._shift else "tri"
 
-        print(f"is shift on : {self._shift}")
+        if self.had_error:
+            print("Vous ne pouvez plus visualiser à cause d'une erreur précédente.")
+            return
+
+
+        mode = "quad" if self._shift else "tri"
 
         self.remove_all_empty_figures()
 
@@ -141,24 +165,24 @@ class Game:
 
         for f in self.figures:
             points.append(f.points)
-            if len(f.points) < 3:
-                print('Une des surfaces possède moins de 3 points, il ne peut pas être sauvegardée')
+            if len(f.points) < 2:
+                print('Une des surfaces possède moins de 2 points, il ne peut pas être sauvegardée')
                 return
         
 
-        fc.view(points=points, mode=mode, game=self, algorithm=(self.algorithm + 1))
+        if not fc.view(figs=self.figures, mode=mode, game=self, algorithm=(self.algorithm + 1)):
+            self.had_error = True
 
     
     def save_as_geo(self):
-
         self.remove_all_empty_figures()
 
         points = []
 
         for f in self.figures:
             points.append(f.points)
-            if len(f.points) < 3:
-                print('Une des surfaces possède moins de 3 points, il ne peut pas être sauvegardée')
+            if len(f.points) < 2:
+                print('Une des surfaces possède moins de 2 points, il ne peut pas être sauvegardée')
                 return
 
         fc.save_as_geo(self.figures)
@@ -178,33 +202,39 @@ class Game:
             self.current_selected_figure = 0
 
     def show_help(self):
-        print("-======= MENU EXPLICATIF =======-")
-        print('Points')
+        RESET       = '\033[0m'
+        GRAS        = '\033[1m'
+        ITALIQUE    =' \033[3m'
+        BLEU        = '\033[34m'
+        BLEUC       = '\033[94m'
+
+
+        print(f"{BLEU}{GRAS}-======= MENU EXPLICATIF =======-{RESET}")
+        print(f'{BLEUC}{ITALIQUE}Points{RESET}')
         print("• Clic gauche        -> Ajout d'un point")
         print("• Clic droit         -> Retire le dernier point de la figure")
 
-        print("Ancrage")
-        print("• CTRL               -> Grand ancrage")
-        print("• SHIFT              -> Ancrage Moyen")
-        print("• CTRL + SHIFT       -> Petit ancrage")
+        print(f"{BLEUC}{ITALIQUE}Ancrage{RESET}")
+        print("• 'Z'                -> Changer d'ancrage (Aucun -> Grand -> Moyen -> Petit)")
+        print("• SHIFT + 'Z'        -> Changer d'ancrage (Petit -> Moyen -> Grand -> Aucun)")
 
-        print("Gestion des figures")
+        print(f"{BLEUC}{ITALIQUE}Gestion des figures{RESET}")
         print("• 'N'                -> Nouvelle figure")
         print("• 'up'               -> Figure suivante")
         print("• 'down'             -> Figure précédente")
 
-        print("Sauvegarde")
+        print(f"{BLEUC}{ITALIQUE}Sauvegarde{RESET}")
         print("• 'S'                -> Sauvegarde en .msh")
         print("• SHIFT + 'S'        -> Sauvegarde en .msh (avec subdivision)")
 
-        print('Visualisation')
+        print(f'{BLEUC}{ITALIQUE}Visualisation{RESET}')
         print("• 'V'                -> Visualiser sous GMSH")
         print("• SHIFT + 'V'        -> Visualiser sous GMSH (avec subdivision)")
 
-        print('Algorithmes')
+        print(f'{BLEUC}{ITALIQUE}Algorithmes{RESET}')
         print("• 'A'                -> Changer d'algorithme")
 
-        print("\n•• 'H' pour revoir cette liste ••")
+        print(f"\n{ITALIQUE}•• 'H' pour revoir cette liste ••{RESET}")
 
 
     def add_new_figure(self):
@@ -240,7 +270,12 @@ class Game:
             self.mode = "arc de cercle"
         elif self.mode == "arc de cercle":
             self.mode = "ligne"
-        
+
+        if self.figures[self.current_selected_figure]._choosing_arc_center:
+            self.figures[self.current_selected_figure]._choosing_arc_center = False
+            self.remove_last_point()
+
+
         self.title == pygame.display.set_caption(f'Editeur de figure ({self.mode})')
     
     def change_anchor(self):
@@ -269,6 +304,8 @@ class Game:
                 if pygame.key.name(event.key) == 'a'            : self.change_algorithm()
                 if pygame.key.name(event.key) == 'm'            : self.change_mode()
                 if pygame.key.name(event.key) == 'z'            : self.change_anchor()
+                if pygame.key.name(event.key) == 'g'            : self.save_as_geo()
+
             
             if event.type == pygame.KEYUP:
                 if pygame.key.name(event.key) == 'left shift'   : self._shift = False
@@ -297,39 +334,247 @@ class Game:
                 if event.button == pygame.BUTTON_RIGHT: ## RETIRE LE DERNIER POINT
                     self.remove_last_point()
                     return
+    
+    def test(self) :
+        if len(self.figures[0].points) > 2:
+            s_ = self.figures[0].points[0]
+            e_ = self.figures[0].points[1]
+            c_ = self.figures[0].points[2]
+            
+            # calcul de a et b de la formule ax + b
+            a = (e_[1] - s_[1]) / (e_[0] - s_[0]) if e_[0] != s_[0] else None
+            b = s_[1] - (a * s_[0]) if a is not None else None
+
+            # calcul du point central entre s_ et e_
+            ctr = ((s_[0] + e_[0]) / 2, (s_[1] + e_[1]) / 2)
+
+            # calcul de la perpendiculaire de ax + b
+            a_ = - (1 / a) if a is not None else None
+            b_ = ctr[1] - (a_ * ctr[0]) if a_ is not None else None
+
+            # calcul du point le plus proche de c_ se trouvant sur la trajectoire de la perpendiculaire de ax+b
+            c_x_star = (a_ * (c_[1] - b_) + c_[0]) / ((a_**2) + 1) if a_ is not None else None
+            c_y_star = (a_ * c_x_star + b_) if a_ is not None else None
+            c_star = (c_x_star, c_y_star)
+
+            if c_x_star is not None:
+                self.figures[0].points[2] = c_star
+                
+
+            radius = math.sqrt( (c_star[0] - s_[0])**2 + (c_star[1] - s_[1])**2 )
+            
+            s_a = math.atan2( - (s_[1] - c_star[1]), s_[0] - c_star[0])
+            e_a = math.atan2( - (e_[1] - c_star[1]), e_[0] - c_star[0])
+
+            delta = (e_a - s_a) % (2 * math.pi)
+
+            if delta > math.pi:
+                s_a, e_a = e_a, s_a
+
+            if e_a < s_a:
+                e_a += 2* math.pi
+            
+            rect = pygame.Rect(c_star[0] - radius, c_star[1] - radius, 2 * radius, 2 * radius)
+            pygame.draw.arc(self.window, (0, 0, 0), rect, s_a, e_a, 2)
 
 class Figure:
+
     def __init__(self):
         self.points = []
+        self.points_arc = []
+        self.lines  = []
+        self.arc = []
+        self.order = []
+        
+        self.arc_save = None
+
+        self._choosing_arc_center = False
     
-    def add_point(self, x, y):
-        self.points.append((x, y))
+    def add_point(self, x, y, mode):
+        if not self._choosing_arc_center: self.points.append((x, y))
+
+        if len(self.points) < 2: return # ne peut pas dessiner de lignes ou d'arc de cercle car il n'y a que 0 ou 1 point
+
+        if mode == 'ligne':
+            self.lines.append( (len(self.points) - 2, len(self.points) - 1) )
+            self.order.append('line')
+        elif mode == 'arc de cercle':
+            if not self._choosing_arc_center:
+                self.arc_save = (len(self.points) - 2, len(self.points) - 1)
+                self._choosing_arc_center = True
+            else :
+                self.add_arc(self.arc_save, (x, y))
+                self.order.append('arc')
+                self._choosing_arc_center = False
+
+    def add_arc(self, points, center):
+        s_ = self.points[points[0]]
+        e_ = self.points[points[1]]
+        c_ = center
+
+
+        # Si a (et b) sont None, c'est que les deux points sont l'un au dessus de l'autre.
+        a = (e_[1] - s_[1]) / (e_[0] - s_[0]) if e_[0] != s_[0] else None
+        b = s_[1] - (a * s_[0]) if a is not None else None
+
+        ctr = ((s_[0] + e_[0]) /2, (s_[1] + e_[1]) /2)
+
+        # Droite perpendiculaire à la fonc. affine
+        a_ = - (1 / a) if (a is not None) and (a != 0) else None
+        b_ = ctr[1] - (a_ * ctr[0]) if a_ is not None else None
+
+        cx_star = (a_ * (c_[1] - b_) + c_[0]) / ((a_**2) + 1) if a_ is not None else None
+        cy_star = (a_ * cx_star + b_) if a_ is not None else None
+
+        
+        if a_ is not None:
+            c_star = (cx_star, cy_star)
+        else:
+            if s_[0] == e_[0]:
+                c_star = (center[0] , ctr[1])
+            if s_[1] == e_[1]:
+                c_star = (ctr[0] , center[1])
+        
+        self.points_arc.append(c_star)
+        self.arc.append((points, (len(self.points_arc) - 1)))
+
     
     def remove_last_point(self) -> bool: # Si return False et que l'on souhaite retirer un point, on pourrait simplement détruire la figure avec la reception du False
         if len(self.points) == 0:
             return False
+        
+        ok = False
+        while not ok:
+            ok = True
+            if len(self.lines) > 0:
+                for i, line in enumerate(self.lines):
+                    if line[0] == len(self.points) - 1:
+                        ok = False
+                        self.lines.pop(i)
+                        self.order.pop(-1)
+                        break
+                    if line[1] == len(self.points) - 1:
+                        ok = False
+                        self.lines.pop(i)
+                        self.order.pop(-1)
+                        break
+            
+            if len(self.arc) > 0:
+                for i, arc in enumerate(self.arc):
+                    if arc[0][0] == len(self.points) - 1:
+                        ok = False
+                        self.points_arc.pop(arc[1])
+                        self.arc.pop(i)
+                        self.order.pop(-1)
+                        break
+                    if arc[0][1] == len(self.points) - 1:
+                        ok = False
+                        self.points_arc.pop(arc[1])
+                        self.arc.pop(i)
+                        self.order.pop(-1)
+                        break
 
         self.points.pop(-1)
+
         return True
     
+    def draw(self, window, current_figure: bool):
+        self.draw_points(window, current_figure)
+        self.draw_arc_points(window, current_figure)
+        self.draw_lines(window, current_figure)
+        self.draw_arc(window, current_figure)
+        if self._choosing_arc_center:
+            self.draw_arc_preview(window, current_figure)
+    
+    def draw_arc_points(self, window, current_figure: bool):
+        if len(self.points_arc) == 0: return
+
+        for i in range(len(self.points_arc)):
+            pygame.draw.circle(window, CURRENT_ARC_POINT, self.points_arc[i], 4) if current_figure else pygame.draw.circle(window, OTHER_ARC_POINT, self.points_arc[i], 2)
+
     def draw_points(self, window, current_figure: bool):
 
-        if len(self.points) <= 0: # Il ne possède pas de points, donc pas de dessin, puni !
-            return
+        if len(self.points) == 0:return # Il ne possède pas de points, donc pas de dessin, puni !
+            
         
         for i in range(len(self.points) - 1):
             pygame.draw.circle(window, CURRENT_POINT, self.points[i], 5) if current_figure else pygame.draw.circle(window, OTHER_POINT, self.points[i], 3)
         pygame.draw.circle(window, LAST_POINT, self.points[-1], 5) if current_figure else pygame.draw.circle(window, OTHER_POINT, self.points[-1], 3)
 
     def draw_lines(self, window, current_figure: bool):
-
-        if len(self.points) <= 1: # Il ne possède pas assez de points, pas de ligne, encore puni !
-            return
         
-        for i in range(len(self.points) - 1):
-            pygame.draw.line(window, CURRENT_LINE, self.points[i], self.points[i + 1], 2) if current_figure else pygame.draw.line(window, OTHER_LINE, self.points[i], self.points[i + 1], 2)
-        pygame.draw.line(window, LAST_LINE, self.points[-1], self.points[0], 2) if current_figure else pygame.draw.line(window, OTHER_LINE, self.points[-1], self.points[0], 2)
+        if len(self.points) > 1 : pygame.draw.line(window, LAST_LINE, self.points[-1], self.points[0], 2) if current_figure else pygame.draw.line(window, OTHER_LINE, self.points[-1], self.points[0], 2)
+
+        if len(self.lines) == 0: return # Pas de lignes ? pas de dessin !
             
+        for i in range(len(self.lines)):
+            line = self.lines[i]
+            pygame.draw.line(window, CURRENT_LINE, self.points[line[0]], self.points[line[1]], 2) if current_figure else pygame.draw.line(window, OTHER_LINE, self.points[line[0]], self.points[line[1]], 2)
+        
+
+    def draw_arc_preview(self, window, current_figure: bool):
+        s_ = self.points[-2]
+        e_ = self.points[-1]
+        c_ = pygame.mouse.get_pos()
+
+
+        # Si a (et b) sont None, c'est que les deux points sont l'un au dessus de l'autre.
+        a = (e_[1] - s_[1]) / (e_[0] - s_[0]) if e_[0] != s_[0] else None
+        b = s_[1] - (a * s_[0]) if a is not None else None
+
+        ctr = ((s_[0] + e_[0]) /2, (s_[1] + e_[1]) /2)
+
+        # Droite perpendiculaire à la fonc. affine
+        a_ = - (1 / a) if (a is not None) and (a != 0) else None
+        b_ = ctr[1] - (a_ * ctr[0]) if a_ is not None else None
+
+        cx_star = (a_ * (c_[1] - b_) + c_[0]) / ((a_**2) + 1) if a_ is not None else None
+        cy_star = (a_ * cx_star + b_) if a_ is not None else None
+
+        
+        if a_ is not None:
+            c_star = (cx_star, cy_star)
+        else:
+            if s_[0] == e_[0]:
+                c_star = (c_[0] , ctr[1])
+            if s_[1] == e_[1]:
+                c_star = (ctr[0] , c_[1])
+
+        radius = math.sqrt( (c_star[0] - s_[0])**2 + (c_star[1] - s_[1])**2 )
+
+        s_a = math.atan2( - (s_[1] - c_star[1]), s_[0] - c_star[0])
+        e_a = math.atan2( - (e_[1] - c_star[1]), e_[0] - c_star[0])
+
+        delta = (e_a - s_a) % (2 * math.pi)
+
+        if delta > math.pi:
+            s_a, e_a = e_a, s_a
+            
+        rect = pygame.Rect(c_star[0] - radius, c_star[1] - radius, 2 * radius, 2 * radius)
+
+        pygame.draw.arc(window, ARC_PREVIEW, rect, s_a, e_a, 1)
+        
+
+    def draw_arc(self, window, current_figure: bool):
+        for arc in self.arc:
+            
+            s_ = self.points[arc[0][0]] # Start
+            e_ = self.points[arc[0][1]] # End
+            c_ = self.points_arc[arc[1]]# Center
+
+            radius = math.sqrt((c_[0] - s_[0])**2 + (c_[1] - s_[1])**2)
+
+            s_a = math.atan2(- (s_[1] - c_[1]), s_[0] - c_[0])
+            e_a = math.atan2(- (e_[1] - c_[1]), e_[0] - c_[0])
+
+            delta = (e_a - s_a) % (2 * math.pi)
+            if delta > math.pi: # On veut dessiner le moins possible (prendre le plus petit côté)
+                s_a, e_a = e_a, s_a
+
+            rect = pygame.Rect(c_[0] - radius, c_[1] - radius, 2 * radius, 2 * radius)
+
+            pygame.draw.arc(window, CURRENT_LINE, rect, s_a, e_a, 2) if current_figure else pygame.draw.arc(window, OTHER_LINE, rect, s_a, e_a, 1)
+        
 if __name__ == '__main__':
 
     game = Game()
