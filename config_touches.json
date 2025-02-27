@@ -1,0 +1,14 @@
+{
+    "show_help" : "h",
+    "view_in_gmsh" : "v",
+    "save_as_mesh" : "s",
+    "save_as_geo" : "g",
+    "new_figure" : "e",
+    "next_figure" : "up",
+    "previous_figure" : "down",
+    "change_algorithm" : "a",
+    "change_mode" : "r",
+    "change_anchor" : "z"
+
+}
+

@@ -2,6 +2,7 @@ import pygame
 import math
 from pygame.locals import *
 import sys
+import json
 
 import figure_creator as fc
 
@@ -40,6 +41,9 @@ class Game:
         self.current_selected_figure    = 0
         self.algorithm                  = 5
         self.had_error                  = False
+
+        with open("config_touches.json", 'r', encoding= "utf-8") as f:
+            self.touches = json.load(f)
 
         self.initialize()
     
@@ -107,7 +111,6 @@ class Game:
         if self._is_on:
             self.events()
             self.refresh()
-            # self.test()
 
             pygame.display.flip()
 
@@ -116,8 +119,6 @@ class Game:
         for i in range(len(self.figures)):
             for i in range(len(self.figures)):
                 self.figures[i].draw(self.window, False) if self.current_selected_figure != i else self.figures[i].draw(self.window, True)
-            # self.figures[i].draw_points(self.window, False) if self.current_selected_figure != i else self.figures[i].draw_points(self.window, True)
-            # self.figures[i].draw_lines(self.window, False) if self.current_selected_figure != i else self.figures[i].draw_lines(self.window, True)
 
     def remove_last_point(self): ## IF NOT remove_last_point() pour la figure en cours -> regarde si on possède plus d'une figure. si oui, supprime la figure.
         if not self.figures[self.current_selected_figure].remove_last_point():
@@ -147,7 +148,7 @@ class Game:
                 print('Une des surfaces possède moins de 3 points, il ne peut pas être sauvegardée')
                 return
             
-        if not fc.automatize(self.figures, mode=mode, algorithm=(self.algorithm + 1)):
+        if not fc.save_as_msh(self.figures, mode=mode, algorithm=(self.algorithm + 1)):
             self.had_error = True
     
     def view_mesh(self):
@@ -213,28 +214,30 @@ class Game:
         print(f'{BLEUC}{ITALIQUE}Points{RESET}')
         print("• Clic gauche        -> Ajout d'un point")
         print("• Clic droit         -> Retire le dernier point de la figure")
+        print(f"• '{self.touches['change_mode']}'                -> Changer mode (ligne / arc)")
 
         print(f"{BLEUC}{ITALIQUE}Ancrage{RESET}")
-        print("• 'Z'                -> Changer d'ancrage (Aucun -> Grand -> Moyen -> Petit)")
-        print("• SHIFT + 'Z'        -> Changer d'ancrage (Petit -> Moyen -> Grand -> Aucun)")
+        print(f"• '{self.touches['change_anchor']}'                -> Changer d'ancrage (Aucun -> Grand -> Moyen -> Petit)")
+        print(f"• SHIFT + '{self.touches['change_anchor']}'        -> Changer d'ancrage (Petit -> Moyen -> Grand -> Aucun)")
 
         print(f"{BLEUC}{ITALIQUE}Gestion des figures{RESET}")
-        print("• 'N'                -> Nouvelle figure")
-        print("• 'up'               -> Figure suivante")
-        print("• 'down'             -> Figure précédente")
+        print(f"• '{self.touches['new_figure']}'                -> Nouvelle figure")
+        print(f"• '{self.touches['next_figure']}'               -> Figure suivante")
+        print(f"• '{self.touches['previous_figure']}'             -> Figure précédente")
 
         print(f"{BLEUC}{ITALIQUE}Sauvegarde{RESET}")
-        print("• 'S'                -> Sauvegarde en .msh")
-        print("• SHIFT + 'S'        -> Sauvegarde en .msh (avec subdivision)")
+        print(f"• '{self.touches['save_as_mesh']}'                -> Sauvegarder le maillage")
+        print(f"• SHIFT + '{self.touches['save_as_mesh']}'        -> Sauvegarder le maillage (avec subdivision)")
+        print(f"• '{self.touches['save_as_geo']}'                -> Sauvegarder la forme")
 
         print(f'{BLEUC}{ITALIQUE}Visualisation{RESET}')
-        print("• 'V'                -> Visualiser sous GMSH")
-        print("• SHIFT + 'V'        -> Visualiser sous GMSH (avec subdivision)")
+        print(f"• '{self.touches['view_in_gmsh']}'                -> Visualiser sous GMSH")
+        print(f"• SHIFT + '{self.touches['view_in_gmsh']}'        -> Visualiser sous GMSH (avec subdivision)")
 
         print(f'{BLEUC}{ITALIQUE}Algorithmes{RESET}')
-        print("• 'A'                -> Changer d'algorithme")
+        print(f"• '{self.touches['change_algorithm']}'                -> Changer d'algorithme")
 
-        print(f"\n{ITALIQUE}•• 'H' pour revoir cette liste ••{RESET}")
+        print(f"\n{ITALIQUE}•• '{self.touches['show_help']}' pour revoir cette liste ••{RESET}")
 
 
     def add_new_figure(self):
@@ -292,19 +295,19 @@ class Game:
                 sys.exit()
 
             if event.type == pygame.KEYDOWN:
-                if pygame.key.name(event.key) == 'left shift'   : self._shift = True
-                if pygame.key.name(event.key) == 'left ctrl'    : self._ctrl  = True
-                if pygame.key.name(event.key) == 's'            : self.save()
-                if pygame.key.name(event.key) == 'n'            : self.add_new_figure()
-                if pygame.key.name(event.key) == 'up'           : self.next_figure()
-                if pygame.key.name(event.key) == 'down'         : self.previous_figure()
-                if pygame.key.name(event.key) == 'g'            : self.save_as_geo()
-                if pygame.key.name(event.key) == 'v'            : self.view_mesh()
-                if pygame.key.name(event.key) == 'h'            : self.show_help()
-                if pygame.key.name(event.key) == 'a'            : self.change_algorithm()
-                if pygame.key.name(event.key) == 'm'            : self.change_mode()
-                if pygame.key.name(event.key) == 'z'            : self.change_anchor()
-                if pygame.key.name(event.key) == 'g'            : self.save_as_geo()
+                if pygame.key.name(event.key) == 'left shift'                       : self._shift = True
+                if pygame.key.name(event.key) == 'left ctrl'                        : self._ctrl  = True
+                if pygame.key.name(event.key) == self.touches["save_as_mesh"]       : self.save()
+                if pygame.key.name(event.key) == self.touches["new_figure"]         : self.add_new_figure()
+                if pygame.key.name(event.key) == self.touches["next_figure"]        : self.next_figure()
+                if pygame.key.name(event.key) == self.touches["previous_figure"]    : self.previous_figure()
+                if pygame.key.name(event.key) == self.touches["save_as_geo"]        : self.save_as_geo()
+                if pygame.key.name(event.key) == self.touches["view_in_gmsh"]       : self.view_mesh()
+                if pygame.key.name(event.key) == self.touches["show_help"]          : self.show_help()
+                if pygame.key.name(event.key) == self.touches["change_algorithm"]   : self.change_algorithm()
+                if pygame.key.name(event.key) == self.touches["change_mode"]        : self.change_mode()
+                if pygame.key.name(event.key) == self.touches["change_anchor"]      : self.change_anchor()
+                if pygame.key.name(event.key) == self.touches["save_as_geo"]        : self.save_as_geo()
 
             
             if event.type == pygame.KEYUP:
@@ -334,48 +337,6 @@ class Game:
                 if event.button == pygame.BUTTON_RIGHT: ## RETIRE LE DERNIER POINT
                     self.remove_last_point()
                     return
-    
-    def test(self) :
-        if len(self.figures[0].points) > 2:
-            s_ = self.figures[0].points[0]
-            e_ = self.figures[0].points[1]
-            c_ = self.figures[0].points[2]
-            
-            # calcul de a et b de la formule ax + b
-            a = (e_[1] - s_[1]) / (e_[0] - s_[0]) if e_[0] != s_[0] else None
-            b = s_[1] - (a * s_[0]) if a is not None else None
-
-            # calcul du point central entre s_ et e_
-            ctr = ((s_[0] + e_[0]) / 2, (s_[1] + e_[1]) / 2)
-
-            # calcul de la perpendiculaire de ax + b
-            a_ = - (1 / a) if a is not None else None
-            b_ = ctr[1] - (a_ * ctr[0]) if a_ is not None else None
-
-            # calcul du point le plus proche de c_ se trouvant sur la trajectoire de la perpendiculaire de ax+b
-            c_x_star = (a_ * (c_[1] - b_) + c_[0]) / ((a_**2) + 1) if a_ is not None else None
-            c_y_star = (a_ * c_x_star + b_) if a_ is not None else None
-            c_star = (c_x_star, c_y_star)
-
-            if c_x_star is not None:
-                self.figures[0].points[2] = c_star
-                
-
-            radius = math.sqrt( (c_star[0] - s_[0])**2 + (c_star[1] - s_[1])**2 )
-            
-            s_a = math.atan2( - (s_[1] - c_star[1]), s_[0] - c_star[0])
-            e_a = math.atan2( - (e_[1] - c_star[1]), e_[0] - c_star[0])
-
-            delta = (e_a - s_a) % (2 * math.pi)
-
-            if delta > math.pi:
-                s_a, e_a = e_a, s_a
-
-            if e_a < s_a:
-                e_a += 2* math.pi
-            
-            rect = pygame.Rect(c_star[0] - radius, c_star[1] - radius, 2 * radius, 2 * radius)
-            pygame.draw.arc(self.window, (0, 0, 0), rect, s_a, e_a, 2)
 
 class Figure:
 
