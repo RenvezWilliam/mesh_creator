@@ -14,9 +14,13 @@
 ``$ pip install -r requirements.txt``
 
 ## Lancer le créateur
-• Ouvrir un terminal dans le dossier du créateur et lancer la commande suivante :
+• Ouvrir un terminal dans le dossier de l'éditeur et lancer la commande suivante :
 
-``$ python3 creator.py``
+``$ python3 editor.py``
+
+• Pour lancer l'éditeur avec une forme déja construite (.geo et .geo_unrolled) :
+
+``$ python3 editor.py <chemin>``
 
 ## Fonctionnement
 *Les touches présentées ici sont celles utilisées par défaut*

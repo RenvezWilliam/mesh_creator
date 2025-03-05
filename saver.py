@@ -4,13 +4,13 @@ import gmsh
 from datetime import datetime
 from typing import Literal
 
-import creator
+import editor
 
-from creator import Figure
+from editor import Figure
 
 import multiprocessing
 
-class FIGURE_CREATOR:
+class SAVER:
     def __init__(self):
         self.points     = []
         self.points_arc = []
@@ -92,93 +92,93 @@ class FIGURE_CREATOR:
 ##########################################################################
 
 def save_as_msh(figs : list[Figure], mode: Literal['tri', 'quad'] = "tri", algorithm : int = 6):
-    fc = FIGURE_CREATOR()
-    fc.initialize()
+    sv = SAVER()
+    sv.initialize()
 
     
     for i, fig in enumerate(figs):
 
         ## Ajouter les points un à un
         for pt in fig.points:
-            pt = (float(pt[0] / 100), float(500 - pt[1] / 100))
-            fc.add_point(pt[0], pt[1])
+            pt = (float(pt[0] / 100), float((500 - pt[1]) / 100))
+            sv.add_point(pt[0], pt[1])
 
         ## Ajouter les points arc un à un
         for pta in fig.points_arc:
-            pta = (float(pta[0] / 100), float(500 - pta[1] / 100))
-            fc.add_point_arc(pta[0], pta[1])
+            pta = (float(pta[0] / 100), float((500 - pta[1]) / 100))
+            sv.add_point_arc(pta[0], pta[1])
 
         l, a = 0, 0
         ## Ajouter les lignes et les arcs dans l'ordre
         for j in range(len(fig.order)):
             if fig.order[j] == 'line':
-                fc.add_line(fig.lines[l])
+                sv.add_line(fig.lines[l])
                 l += 1
             elif fig.order[j] == 'arc':
-                fc.add_arc(fig.arc[a])
+                sv.add_arc(fig.arc[a])
                 a += 1
 
         ## S'il reste des figures -> créer une nouvelle figure
         if i < len(figs) - 1:
-            fc.add_fig()
+            sv.add_fig()
 
     ## Créer la/les surface(s) puis finaliser
-    fc.create_surface()
+    sv.create_surface()
 
     ## save selon le mode
-    fc.finilize(mode, algorithm = algorithm)
+    sv.finilize(mode, algorithm = algorithm)
 
     if mode == 'tri':
-        fc.save(f"mesh_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
+        sv.save(f"mesh_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
     else:
-        fc.save(f"mesh_sub_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
+        sv.save(f"mesh_sub_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
         
     return True
     
 
-def view(figs : list[Figure], mode: Literal['tri', 'quad'] = "tri", game : creator.Game = None, algorithm : int = 6):
+def view(figs : list[Figure], mode: Literal['tri', 'quad'] = "tri", game : editor.Game = None, algorithm : int = 6):
     
     if game == None:
         return
 
-    fc = FIGURE_CREATOR()
-    fc.initialize()
+    sv = SAVER()
+    sv.initialize()
 
     for i, fig in enumerate(figs):
 
         ## Ajouter les points un à un
         for pt in fig.points:
-            pt = (float(pt[0] / 100), float(500 - pt[1] / 100))
-            fc.add_point(pt[0], pt[1])
+            pt = (float(pt[0] / 100), float((500 - pt[1]) / 100))
+            sv.add_point(pt[0], pt[1])
 
         ## Ajouter les points arc un à un
         for pta in fig.points_arc:
-            pta = (float(pta[0] / 100), float(500 - pta[1] / 100))
-            fc.add_point_arc(pta[0], pta[1])
+            pta = (float(pta[0] / 100), float((500 - pta[1]) / 100))
+            sv.add_point_arc(pta[0], pta[1])
 
         l, a = 0, 0
         ## Ajouter les lignes et les arcs dans l'ordre
         for j in range(len(fig.order)):
             if fig.order[j] == 'line':
-                fc.add_line(fig.lines[l])
+                sv.add_line(fig.lines[l])
                 l += 1
             elif fig.order[j] == 'arc':
-                fc.add_arc(fig.arc[a])
+                sv.add_arc(fig.arc[a])
                 a += 1
 
         ## S'il reste des figures -> créer une nouvelle figure
         if i < len(figs) - 1:
-            fc.add_fig()
+            sv.add_fig()
 
     ## Créer la/les surface(s) puis finaliser
-    fc.create_surface()
+    sv.create_surface()
 
     ## save selon le mode
-    fc.finilize(mode, algorithm = algorithm)
+    sv.finilize(mode, algorithm = algorithm)
 
     game.display_switch(False)
 
-    gmsh_process = multiprocessing.Process(target=fc.view_mesh)
+    gmsh_process = multiprocessing.Process(target=sv.view_mesh)
     gmsh_process.start()
     gmsh_process.join()
 
@@ -186,45 +186,45 @@ def view(figs : list[Figure], mode: Literal['tri', 'quad'] = "tri", game : creat
 
     return True
 
-def save_as_geo(figs : list[Figure], mode: Literal['tri', 'quad'] = "tri", game : creator.Game = None, algorithm : int = 6):
-    fc = FIGURE_CREATOR()
-    fc.initialize()
+def save_as_geo(figs : list[Figure], mode: Literal['tri', 'quad'] = "tri", game : editor.Game = None, algorithm : int = 6):
+    sv = SAVER()
+    sv.initialize()
 
     for i, fig in enumerate(figs):
 
         ## Ajouter les points un à un
         for pt in fig.points:
-            pt = (float(pt[0] / 100), float(500 - pt[1] / 100))
-            fc.add_point(pt[0], pt[1])
+            pt = (float(pt[0] / 100), float((500 - pt[1]) / 100))
+            sv.add_point(pt[0], pt[1])
 
         ## Ajouter les points arc un à un
         for pta in fig.points_arc:
-            pta = (float(pta[0] / 100), float(500 - pta[1] / 100))
-            fc.add_point_arc(pta[0], pta[1])
+            pta = (float(pta[0] / 100), float((500 - pta[1]) / 100))
+            sv.add_point_arc(pta[0], pta[1])
 
         l, a = 0, 0
         ## Ajouter les lignes et les arcs dans l'ordre
         for j in range(len(fig.order)):
             if fig.order[j] == 'line':
-                fc.add_line(fig.lines[l])
+                sv.add_line(fig.lines[l])
                 l += 1
             elif fig.order[j] == 'arc':
-                fc.add_arc(fig.arc[a])
+                sv.add_arc(fig.arc[a])
                 a += 1
 
         ## S'il reste des figures -> créer une nouvelle figure
         if i < len(figs) - 1:
-            fc.add_fig()
+            sv.add_fig()
             
 
     ## Créer la/les surface(s) puis finaliser
-    fc.create_surface()
+    sv.create_surface()
 
     ## save 
-    fc.finilize()
+    sv.finilize()
 
         
-    fc.save_as_geo(f"geo_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
+    sv.save_as_geo(f"geo_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
     return True
 
 

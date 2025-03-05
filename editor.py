@@ -4,14 +4,12 @@ from pygame.locals import *
 import sys
 import json
 
-import figure_creator as fc
+import saver  as sv
+import reader as rd
 
 """ 
-FINIR : Create_surface dans figure_creator
-+ Finir sauvegarde + visualisation
-+ Faire sauvegarde .geo
-"""
 
+"""
 
 ## Initialisation des couleurs ##
 WHITE               = (255, 255, 255)
@@ -124,7 +122,6 @@ class Game:
         if not self.figures[self.current_selected_figure].remove_last_point():
             if len(self.figures) > 1:
                 self.remove_current_figure()
-                print('figure supprimée')
         
     def remove_current_figure(self):
         self.figures.pop(self.current_selected_figure)
@@ -148,7 +145,7 @@ class Game:
                 print('Une des surfaces possède moins de 3 points, il ne peut pas être sauvegardée')
                 return
             
-        if not fc.save_as_msh(self.figures, mode=mode, algorithm=(self.algorithm + 1)):
+        if not sv.save_as_msh(self.figures, mode=mode, algorithm=(self.algorithm + 1)):
             self.had_error = True
     
     def view_mesh(self):
@@ -171,7 +168,7 @@ class Game:
                 return
         
 
-        if not fc.view(figs=self.figures, mode=mode, game=self, algorithm=(self.algorithm + 1)):
+        if not sv.view(figs=self.figures, mode=mode, game=self, algorithm=(self.algorithm + 1)):
             self.had_error = True
 
     
@@ -186,7 +183,7 @@ class Game:
                 print('Une des surfaces possède moins de 2 points, il ne peut pas être sauvegardée')
                 return
 
-        fc.save_as_geo(self.figures)
+        sv.save_as_geo(self.figures)
 
     def remove_all_empty_figures(self):
         while True:
@@ -539,8 +536,24 @@ class Figure:
 if __name__ == '__main__':
 
     game = Game()
+    game.show_help()
 
-    print(f"• AFFICHER LE MENU EXPLICATIF -> 'H'")
+    if len(sys.argv) == 2:
+        try:
+            forms = rd.read(sys.argv[1])
+            game.figures = []
+            game.current_selected_figure -= 1
 
+            for f in forms:
+                game.add_new_figure()
+                
+                game.figures[-1].points     = f[0]
+                game.figures[-1].lines      = f[1]
+                game.figures[-1].arc        = f[2]
+                game.figures[-1].points_arc = f[3]
+
+        except Exception as e:
+            print(f"Lancement de l'éditeur sans lecture de fichier : \033[91m{e}\033[0m")
+    
     while True:
         game.display()
