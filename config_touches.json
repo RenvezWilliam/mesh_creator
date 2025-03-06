@@ -1,14 +1,17 @@
 {
     "show_help" : "h",
-    "view_in_gmsh" : "v",
+
+    "view_in_gmsh" : "q",
     "save_as_mesh" : "s",
-    "save_as_geo" : "g",
-    "new_figure" : "e",
+    "save_as_geo" : "d",
+
     "next_figure" : "up",
     "previous_figure" : "down",
-    "change_algorithm" : "a",
-    "change_mode" : "r",
-    "change_anchor" : "z"
 
+    "change_anchor" : "a",
+    "change_mode" : "z",
+    "new_figure" : "e",
+    
+    "change_algorithm" : "y"
 }
 

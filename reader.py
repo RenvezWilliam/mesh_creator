@@ -63,6 +63,7 @@ def read(path : str) -> list:
         ac  = []
         pt  = []
         pta = []
+        ord = []
 
         # On cherche parmi toutes les formes, celui qui a le point [0] avec l'ID le plus petit.
         for i, f in enumerate(forms):
@@ -76,9 +77,12 @@ def read(path : str) -> list:
         forms.pop(id)
 
         pt.append(all_pts[frm[0]])
-        if      len(frm) == 2: ln.append(frm)
+        if      len(frm) == 2:
+            ln.append(frm)
+            ord.append("line")
         elif    len(frm) == 3: 
             ac.append(frm)
+            ord.append("arc")
             pta.append(all_pts[frm[2]])
 
         while frm[1] != min:
@@ -87,12 +91,16 @@ def read(path : str) -> list:
                     frm = f
                     forms.remove(f)
                     pt.append(all_pts[frm[0]])
-                    if      len(frm) == 2: ln.append(frm)
+                    if      len(frm) == 2:
+                        ln.append(frm)
+                        ord.append("line")
                     elif    len(frm) == 3: 
                         ac.append(frm)
+                        ord.append("arc")
                         pta.append(all_pts[frm[2]])
                     break
         ln.pop(-1)
+        ord.pop(-1)
 
         # On reformule les index des lignes/arcs parce que sinon --> o amaldiçoado index out of range
 
@@ -108,7 +116,7 @@ def read(path : str) -> list:
             ac[i] = ((ac[i][0] - min, ac[i][1] - min), ida)
             ida += 1
 
-        form.append((pt, ln, ac, pta))
+        form.append((pt, ln, ac, pta, ord))
         min = 999999999
 
     return form

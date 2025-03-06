@@ -8,7 +8,7 @@ import saver  as sv
 import reader as rd
 
 """ 
-
+PROBLEME AVEC L'EDITEUR -> AJOUTER LE ORDER DU READER VERS L'EDITEUR
 """
 
 ## Initialisation des couleurs ##
@@ -88,7 +88,7 @@ class Game:
     def add_point(self, x, y):
         is_present = False
         for points in self.figures[self.current_selected_figure].points:
-            if points[0] == x and points[1] == y:
+            if points[0] == x and points[1] == y and self.mode == "ligne":
                 is_present = True
         
         if not is_present:
@@ -154,6 +154,19 @@ class Game:
             print("Vous ne pouvez plus visualiser à cause d'une erreur précédente.")
             return
 
+        ok = False
+        for f in self.figures:
+            if len(f.points) >= 2:
+                ok = True
+
+            if len(f.points) == 1:
+                print('Une des surfaces possède moins de 2 points, il ne peut pas être visualisée')
+                return
+            
+        if not ok:
+            print("Vous ne pouvez pas visualiser une figure sans points.")
+            return
+            
 
         mode = "quad" if self._shift else "tri"
 
@@ -166,7 +179,6 @@ class Game:
             if len(f.points) < 2:
                 print('Une des surfaces possède moins de 2 points, il ne peut pas être sauvegardée')
                 return
-        
 
         if not sv.view(figs=self.figures, mode=mode, game=self, algorithm=(self.algorithm + 1)):
             self.had_error = True
@@ -236,6 +248,12 @@ class Game:
 
         print(f"\n{ITALIQUE}•• '{self.touches['show_help']}' pour revoir cette liste ••{RESET}")
 
+    def show_figures_content(self):
+        for f in self.figures:
+            print(f"f.points: {f.points}")
+            print(f"f.lines: {f.lines}")
+            print(f"f.arc: {f.arc}")
+            print(f"f.points_arc: {f.points_arc}")
 
     def add_new_figure(self):
         self.figures.append(Figure())
@@ -305,6 +323,7 @@ class Game:
                 if pygame.key.name(event.key) == self.touches["change_mode"]        : self.change_mode()
                 if pygame.key.name(event.key) == self.touches["change_anchor"]      : self.change_anchor()
                 if pygame.key.name(event.key) == self.touches["save_as_geo"]        : self.save_as_geo()
+                if pygame.key.name(event.key) == "p"                                : self.show_figures_content()
 
             
             if event.type == pygame.KEYUP:
@@ -400,6 +419,8 @@ class Figure:
     def remove_last_point(self) -> bool: # Si return False et que l'on souhaite retirer un point, on pourrait simplement détruire la figure avec la reception du False
         if len(self.points) == 0:
             return False
+        
+        self._choosing_arc_center = False
         
         ok = False
         while not ok:
@@ -551,6 +572,7 @@ if __name__ == '__main__':
                 game.figures[-1].lines      = f[1]
                 game.figures[-1].arc        = f[2]
                 game.figures[-1].points_arc = f[3]
+                game.figures[-1].order      = f[4]
 
         except Exception as e:
             print(f"Lancement de l'éditeur sans lecture de fichier : \033[91m{e}\033[0m")

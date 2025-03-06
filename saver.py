@@ -145,7 +145,6 @@ def view(figs : list[Figure], mode: Literal['tri', 'quad'] = "tri", game : edito
     sv.initialize()
 
     for i, fig in enumerate(figs):
-
         ## Ajouter les points un à un
         for pt in fig.points:
             pt = (float(pt[0] / 100), float((500 - pt[1]) / 100))
@@ -229,5 +228,3 @@ def save_as_geo(figs : list[Figure], mode: Literal['tri', 'quad'] = "tri", game 
 
 
 ##########################################################################
-
-
