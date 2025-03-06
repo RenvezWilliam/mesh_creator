@@ -81,13 +81,11 @@ class SAVER:
         gmsh.fltk.run()
 
     def save(self, filename):
-        gmsh.write(filename+'.geo_unrolled')
+        gmsh.write(filename+'.msh')
     
     def save_as_geo(self, filename):
         gmsh.write(filename+'.geo_unrolled')
                 
-
-        
 
 ##########################################################################
 
@@ -222,9 +220,5 @@ def save_as_geo(figs : list[Figure], mode: Literal['tri', 'quad'] = "tri", game 
     ## save 
     sv.finilize()
 
-        
     sv.save_as_geo(f"geo_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
     return True
-
-
-##########################################################################

@@ -7,10 +7,6 @@ import json
 import saver  as sv
 import reader as rd
 
-""" 
-PROBLEME AVEC L'EDITEUR -> AJOUTER LE ORDER DU READER VERS L'EDITEUR
-"""
-
 ## Initialisation des couleurs ##
 WHITE               = (255, 255, 255)
 ANCHOR_BIG          = (100, 100, 100)
@@ -463,7 +459,7 @@ class Figure:
         self.draw_lines(window, current_figure)
         self.draw_arc(window, current_figure)
         if self._choosing_arc_center:
-            self.draw_arc_preview(window, current_figure)
+            self.draw_arc_preview(window)
     
     def draw_arc_points(self, window, current_figure: bool):
         if len(self.points_arc) == 0: return
@@ -491,7 +487,7 @@ class Figure:
             pygame.draw.line(window, CURRENT_LINE, self.points[line[0]], self.points[line[1]], 2) if current_figure else pygame.draw.line(window, OTHER_LINE, self.points[line[0]], self.points[line[1]], 2)
         
 
-    def draw_arc_preview(self, window, current_figure: bool):
+    def draw_arc_preview(self, window,):
         s_ = self.points[-2]
         e_ = self.points[-1]
         c_ = pygame.mouse.get_pos()

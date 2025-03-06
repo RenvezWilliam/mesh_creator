@@ -50,8 +50,6 @@ def read(path : str) -> list:
     ### On recréer les figures afin de pouvoir les implémenter correctement.
     
     forms = lines + arcs
-    
-    Done = False
 
     min = 999999999
     id  = -1
