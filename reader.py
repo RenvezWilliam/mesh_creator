@@ -1,123 +1,113 @@
 import re
 
-def read(path : str) -> list:
-    pattern = re.compile(r"(\w+)\((\d+)\) = \{([^}]+)\};")
-    results = {}
+from geometry.figure    import Figure
+from geometry.arc       import Arc
+from geometry.line      import Line
+from geometry.point     import Point
 
-    all_pts  = []
-    pts      = []
-    pts_arc  = []
-    lines    = []
-    arcs     = []
-    arcs_idx = []
+class Reader:
+    def __init__(self):
+        pass
 
-    ### On récupère tous les points, lignes et arc de cercles
-    with open(path, "r") as f:
-        for match in pattern.finditer(f.read()):
-            mot_clef, indice, valeurs = match.groups()
-            indice = int(indice)
-            valeurs = [v.strip() for v in valeurs.split(",")]
+    def read(self, path: str) -> list[Figure]:
+        pattern = re.compile(r"(\w+)\((\d+)\) = \{([^}]+)\};")
+        results = {}
 
-            if mot_clef not in results: results[mot_clef] = {}
-            results[mot_clef][indice] = valeurs
+        pts : list[Point]     = []
+        forms   = []
 
-    for mot_clef, data in results.items():
+        with open(path, "r") as f:
+            for match in pattern.finditer(f.read()):
+                mot_clef, indice, valeurs = match.groups()
+                indice = int(indice)
+                valeurs = [v.strip() for v in valeurs.split(",")]
 
-        if mot_clef == "Point":
-            for indice, valeurs in data.items():
-                all_pts.append( (float(valeurs[0]) * 100, 500 - float(valeurs[1]) * 100))
+                if mot_clef not in results: results[mot_clef] = {}
+                results[mot_clef][indice] = valeurs
+
+        for mot_clef, data in results.items():
+            if mot_clef == "Point":
+                for indice, valeurs in data.items():
+                    pts.append(Point(float(valeurs[0]) *100, 500 - float(valeurs[1]) * 100, indice - 1))
+
+            elif mot_clef == "Line":
+                for indice, valeurs in data.items():
+                    forms.append(Line(pts[int(valeurs[0]) - 1], pts[int(valeurs[1]) - 1], indice - 1))
+
+            elif mot_clef == "Circle":
+                for indice, valeurs in data.items():
+                    forms.append(Arc(pts[int(valeurs[0]) - 1], pts[int(valeurs[2]) - 1], pts[int(valeurs[1]) - 1], indice - 1))
+                    pts[int(valeurs[1]) - 1].is_arc_point = True
+
+        figures : list[Figure] = []
+
+
+        min = 999999999.0
+        index = -1
+
+        while len(forms) > 0:
+            fig_points = []
+            fig_forms  = []
+
+            # On cherche la forme avec l'ID la plus petite
+            for i, f in enumerate(forms):
+                if f.id < min:
+                    min = f.id
+                    index = i
+            
+            # Une fois trouvé, poursuit les autres points jusqu'à retrouver le point de départ
         
-        elif mot_clef == "Line":
-            for indice, valeurs in data.items():
-                lines.append((int(valeurs[0]) - 1, int(valeurs[1]) - 1))
+            frm = forms[index]
+            forms.pop(index)
 
-        elif mot_clef == "Circle":
-            for indice, valeurs in data.items():
-                arcs.append((int(valeurs[0]) - 1, int(valeurs[2]) - 1, int(valeurs[1]) - 1))
-                arcs_idx.append(int(valeurs[1]) - 1)
+            starting_point = frm.p1
 
-    for i, pt in enumerate(all_pts):
-        if i in arcs_idx:
-            pts_arc.append(pt)
-        else:
-            pts.append(pt)
-        
-    # print("Points:", pts)
-    # print("Points Arc:", pts_arc)
-    # print("Lines:", lines)
-    # print("Arcs:", arcs)
+            if isinstance(frm, Line):
+                fig_forms.append(frm)
+                fig_points.append(frm.p1)
+            elif isinstance(frm, Arc):
+                fig_forms.append(frm)
+                fig_points.append(frm.p1)
+                fig_points.append(frm.pc)
+            
+            while frm.p2 != starting_point:
+                for f in forms:
+                    if f.p1 != frm.p2:
+                        continue 
 
-    ### On recréer les figures afin de pouvoir les implémenter correctement.
-    
-    forms = lines + arcs
-
-    min = 999999999
-    id  = -1
-
-    form = []
-
-    while len(forms) > 0:
-        ln  = []
-        ac  = []
-        pt  = []
-        pta = []
-        ord = []
-
-        # On cherche parmi toutes les formes, celui qui a le point [0] avec l'ID le plus petit.
-        for i, f in enumerate(forms):
-            if f[0] < min:
-                min = f[0]
-                id  = i
-
-        # Une fois qu'on l'a trouvé, on poursuit les autres points jusqu'à retrouver le point de départ.
-        
-        frm = forms[id]
-        forms.pop(id)
-
-        pt.append(all_pts[frm[0]])
-        if      len(frm) == 2:
-            ln.append(frm)
-            ord.append("line")
-        elif    len(frm) == 3: 
-            ac.append(frm)
-            ord.append("arc")
-            pta.append(all_pts[frm[2]])
-
-        while frm[1] != min:
-            for f in forms:
-                if f[0] == frm[1]:
                     frm = f
                     forms.remove(f)
-                    pt.append(all_pts[frm[0]])
-                    if      len(frm) == 2:
-                        ln.append(frm)
-                        ord.append("line")
-                    elif    len(frm) == 3: 
-                        ac.append(frm)
-                        ord.append("arc")
-                        pta.append(all_pts[frm[2]])
+
+                    if isinstance(frm, Line):
+                        fig_forms.append(frm)
+                        fig_points.append(frm.p1)
+                    elif isinstance(frm, Arc):
+                        fig_forms.append(frm)
+                        fig_points.append(frm.p1)
+                        fig_points.append(frm.pc)
                     break
-        ln.pop(-1)
-        ord.pop(-1)
+            
+            # print(fig_forms)
 
-        # On reformule les index des lignes/arcs parce que sinon --> o amaldiçoado index out of range
+            fig_forms.pop(-1) # Retire la dernière ligne (gérée automatiquement par l'éditeur)
 
-        ida = 0
+            fig = Figure()
+            fig.points = fig_points
+            fig.forms  = fig_forms
 
-        for i in range(len(pt)):
-            pt[i] = (int(pt[i][0]), int(pt[i][1]))
+            fig.remake_ids()
 
-        for i in range(len(ln)):
-            ln[i] = (ln[i][0] - min, ln[i][1] - min)
+            figures.append(fig)
+            min = 999999999
+        return figures
         
-        for i in range(len(ac)):
-            ac[i] = ((ac[i][0] - min, ac[i][1] - min), ida)
-            ida += 1
-
-        form.append((pt, ln, ac, pta, ord))
-        min = 999999999
-
-    return form
 
 if __name__ == "__main__":
-    figs = read("TEST.geo_unrolled")
+    rd = Reader()
+
+    figs : list[Figure] = rd.read("T2.geo_unrolled")
+
+    for f in figs:
+        print(f.forms)
+
+    
