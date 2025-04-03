@@ -48,7 +48,7 @@
 • **SHIFT + 'Q'** Visualiser sous GMSH (avec subdivision)
 
 ### Gestion des algorithmes
-• **'Y'** : Changer d'algorithme (affiche l'algoritme en cours dans la console)
+• **'Y'** : Changer d'algorithme
 
 ## /!\
 Le but ici est de créer la forme globale et pas directement le maillage.\
