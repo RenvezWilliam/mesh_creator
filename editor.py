@@ -12,6 +12,12 @@ from reader import Reader
 
 ## Initialisation des couleurs ##
 WHITE               = (255, 255, 255)
+OPTIONS             = (230, 230, 255)
+OPTIONS_TITLE       = (100, 100, 255)
+OPTIONS_VALUE       = (150, 150, 200)
+SLIDER              = (50, 50, 50)
+SLIDER_BALL         = (100, 100, 255)
+
 ANCHOR_BIG          = (100, 100, 100)
 ANCHOR_NORMAL       = (150, 150, 150)
 ANCHOR_SMALL        = (200, 200, 200)
@@ -41,6 +47,10 @@ class Game:
         self.had_error                  = False
         self.dragging                   = False
         self.point_dragged              = None
+        self.element_size               = 1.0
+        self.slider_coordinate_x        = 600
+        self.slider_coordinate_y        = 140
+        self.is_sliding_element_size    = False
 
         with open("config_touches.json", 'r', encoding= "utf-8") as f:
             self.touches = json.load(f)
@@ -50,7 +60,7 @@ class Game:
     def initialize(self):
         pygame.init()
 
-        self.size                   = self.width, self.height = 500, 500
+        self.size                   = self.width, self.height = 700, 500
         self.window                 = pygame.display.set_mode(self.size)
         self.clock                  = pygame.time.Clock().tick(30)
         self.title                  = pygame.display.set_caption(f'Editeur de figure ({self.mode})')
@@ -59,7 +69,7 @@ class Game:
 
 
     def refresh(self):
-        self.window.fill(WHITE)
+        self.window.fill(WHITE)        
 
         # Dessine les encrages
         if self.ancrage == 1: self.draw_large_anchor_lines()
@@ -67,6 +77,51 @@ class Game:
         if self.ancrage == 3: self.draw_small_anchor_lines()
 
         self.draw()
+        self.draw_options()
+    
+    def draw_options(self):
+        pygame.draw.rect(self.window, OPTIONS, (500, 0, 200, 500))
+
+        font_title = pygame.font.Font(None, 25)
+        font       = pygame.font.Font(None, 20)
+
+        algo_titre = font_title.render("Algorithme", True, OPTIONS_TITLE, (220, 220, 255))
+        algo = font.render(self.get_algo_name(), True, OPTIONS_VALUE, (220, 220, 255))
+
+        element_title = font_title.render("Taille Éléments", True, OPTIONS_TITLE, (220, 220, 255))
+        element_value = font.render(str(round(self.element_size, 2)), True, OPTIONS_VALUE, (220, 220, 255))
+
+        ## Algorithme
+        self.window.blit(algo_titre, self.get_text_center(algo_titre, (600, 20)))
+        self.window.blit(algo, self.get_text_center(algo, (600, 45)))
+
+        ## Element Size
+        self.window.blit(element_title, self.get_text_center(element_title, (600, 100)))
+        self.window.blit(element_value, self.get_text_center(element_value, (600, 125)))
+        
+        # Dessine le slider
+        pygame.draw.line(self.window, SLIDER, (520, self.slider_coordinate_y), (680, self.slider_coordinate_y))
+        pygame.draw.circle(self.window, SLIDER_BALL, (self.slider_coordinate_x, self.slider_coordinate_y), 5)
+
+    
+    def get_text_center(self, text, coordinates):
+        txt_rct = text.get_rect()
+        txt_rct.center = coordinates
+        return txt_rct
+    
+    def get_algo_name(self) -> str:
+        if self.algorithm == 0 : return "MeshAdapt"
+        if self.algorithm == 1 : return "Automatic"
+        if self.algorithm == 2 : return "Initial mesh only"
+        if self.algorithm == 4 : return "Delaunay"
+        if self.algorithm == 5 : return "Frontal-Delaunay"
+        if self.algorithm == 6 : return "BAMG"
+        if self.algorithm == 7 : return "Frontal-Delaunay for Quads"
+        if self.algorithm == 8 : return "Packing of Parallelograms"
+        if self.algorithm == 10 : return "Quasi-structured Quad"
+
+        return "None"
+
     
     def draw_large_anchor_lines(self):
         for i in range(0, 500, 100):
@@ -110,6 +165,12 @@ class Game:
         x, y = pygame.mouse.get_pos()
         x, y = self.get_anchor_coords(x, y)
 
+        if 0 > x:   x = 0
+        if x > 500: x = 500
+
+        if 0 > y:   y = 0
+        if y > 500: y = 500
+
         self.point_dragged.move_to(x, y)
 
         for f in self.figures[self.current_selected_figure].forms:
@@ -145,9 +206,30 @@ class Game:
     def display(self):
         if self._is_on:
             self.events()
+            self.options()
             self.refresh()
 
             pygame.display.flip()
+
+    def options(self):
+        self.element_size_slider()
+    
+    def element_size_slider(self):
+        if not self.is_sliding_element_size: return
+
+        x, y = pygame.mouse.get_pos()
+
+        if not ((510 < x < 690) and (self.slider_coordinate_y - 10 < y < self.slider_coordinate_y + 10)):
+            self.is_sliding_element_size = False
+        
+        self.slider_coordinate_x = x
+        if self.slider_coordinate_x < 520 : self.slider_coordinate_x = 520
+        if self.slider_coordinate_x > 680 : self.slider_coordinate_x = 680
+
+        slider_x = self.slider_coordinate_x - 520
+
+        # 10 ^ (x / 80) / 10
+        self.element_size = ( 10 ** (slider_x / 80) ) / 10
 
     def draw(self): 
         # Pour toutes les figures, lance les dessins
@@ -206,7 +288,7 @@ class Game:
                 print('Une des surfaces possède moins de 3 points, il ne peut pas être sauvegardée')
                 return
             
-        if not saver.save_mesh(self.figures, is_subdivised, (self.algorithm + 1)):
+        if not saver.save_mesh(self.figures, is_subdivised, (self.algorithm + 1), self.element_size):
             self.had_error = True
         
 
@@ -239,7 +321,7 @@ class Game:
                 print('Une des surfaces possède moins de 2 points, il ne peut pas être sauvegardée')
                 return
 
-        if not saver.view(figs=self.figures, is_subdivised=is_subdivised, game=self, algorithm=(self.algorithm + 1)):
+        if not saver.view(figs=self.figures, is_subdivised=is_subdivised, game=self, algorithm=(self.algorithm + 1), element_size=self.element_size):
             self.had_error = True
 
     def save_as_geo(self):
@@ -298,7 +380,7 @@ class Game:
         print(f"• SHIFT + '{self.touches['view_in_gmsh']}'        -> Visualiser sous GMSH (avec subdivision)")
 
         print(f'{BLEUC}{ITALIQUE}Algorithmes{RESET}')
-        print(f"• '{self.touches['change_algorithm']}'                -> Changer d'algorithme")
+        print(f"• '{self.touches['change_algorithm']}' / SHIFT + '{self.touches['change_algorithm']}'  -> Changer d'algorithme")
 
         print(f"\n{ITALIQUE}•• '{self.touches['show_help']}' pour revoir cette liste ••{RESET}")
 
@@ -315,20 +397,20 @@ class Game:
     def change_algorithm(self):
         self.algorithm = (self.algorithm + 1) % 11 if not self._shift else (self.algorithm - 1) % 11
 
-        print('Algorithme sélectionné: ', end='')
+        # print('Algorithme sélectionné: ', end='')
 
         if self.algorithm == 3 : self.algorithm = (self.algorithm + 1) if not self._shift else (self.algorithm - 1)
         if self.algorithm == 9 : self.algorithm = (self.algorithm + 1) if not self._shift else (self.algorithm - 1)
         
-        if self.algorithm == 0 : print("MeshAdapt")
-        if self.algorithm == 1 : print("Automatic")
-        if self.algorithm == 2 : print("Initial mesh only")
-        if self.algorithm == 4 : print("Delaunay")
-        if self.algorithm == 5 : print("Frontal-Delaunay")
-        if self.algorithm == 6 : print("BAMG")
-        if self.algorithm == 7 : print("Frontal-Delaunay for Quads")
-        if self.algorithm == 8 : print("Packing of Parallelograms")
-        if self.algorithm == 10 : print("Quasi-structured Quad")
+        # if self.algorithm == 0 : print("MeshAdapt")
+        # if self.algorithm == 1 : print("Automatic")
+        # if self.algorithm == 2 : print("Initial mesh only")
+        # if self.algorithm == 4 : print("Delaunay")
+        # if self.algorithm == 5 : print("Frontal-Delaunay")
+        # if self.algorithm == 6 : print("BAMG")
+        # if self.algorithm == 7 : print("Frontal-Delaunay for Quads")
+        # if self.algorithm == 8 : print("Packing of Parallelograms")
+        # if self.algorithm == 10 : print("Quasi-structured Quad")
     
     def change_mode(self):
         if self.mode == "line":
@@ -375,27 +457,36 @@ class Game:
                 if pygame.key.name(event.key) == 'left ctrl'    : self._ctrl  = False
 
             if event.type == MOUSEBUTTONDOWN:
+                x, y = pygame.mouse.get_pos()
 
                 if event.button == pygame.BUTTON_LEFT: ## CLIC GAUCHE
-                    self.left_clicked()
+                    if 0 < x < 500 and 0 < y < 500:
+                        self.left_clicked()
+
+                    if 510 < x < 690 and self.slider_coordinate_y - 10 < y < self.slider_coordinate_y + 10:
+                        self.is_sliding_element_size = True
                     return
                     
                 if event.button == pygame.BUTTON_RIGHT: ## RETIRE LE DERNIER POINT
-                    self.remove_point()
+                    if 0 < x < 500 and 0 < y < 500:
+                        self.remove_point()
                     return
             
             if event.type == MOUSEBUTTONUP:
                 if event.button == pygame.BUTTON_LEFT:
                     if self.dragging : self.stop_dragging()
-        
-if __name__ == '__main__':
+                    if self.is_sliding_element_size : self.is_sliding_element_size = False
+
+    
+
+def run(path : str = None):
     game = Game()
     game.show_help()
 
-    if len(sys.argv) == 2:
+    if path is not None:
         try:
             rd = Reader()
-            forms = rd.read(sys.argv[1])
+            forms = rd.read(path)
             game.figures = forms
             game.current_selected_figure = 0
 
@@ -404,5 +495,9 @@ if __name__ == '__main__':
     
     while True:
         game.display()
+
+if __name__ == '__main__':
+    run()
+    #run("result_example/geo_unrolled/star.geo_unrolled")
 
     

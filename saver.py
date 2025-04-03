@@ -52,13 +52,14 @@ class Saver:
         
         gmsh.model.geo.add_plane_surface(loops)
     
-    def _finilize(self, is_subdivized : bool = False, algorithm : int = 6):
+    def _finilize(self, is_subdivized : bool = False, algorithm : int = 6, element_size : float = 1.0):
         if is_subdivized:
             gmsh.option.set_number("Mesh.SubdivisionAlgorithm", 1)
         else:
             gmsh.option.set_number("Mesh.SubdivisionAlgorithm", 0)
-        
+
         gmsh.option.set_number("Mesh.Algorithm", algorithm)
+        gmsh.option.set_number("Mesh.MeshSizeFactor", element_size)
 
         gmsh.model.geo.synchronize()
         gmsh.model.mesh.generate(1)
@@ -73,7 +74,7 @@ class Saver:
     def _save_geo(self, filename):
         gmsh.write(filename+".geo_unrolled")
 
-    def _create_geometry(self, figs : list[Figure], is_subdivised = False, algorithm: int = 6):
+    def _create_geometry(self, figs : list[Figure], is_subdivised = False, algorithm: int = 6, element_size: float = 1.0):
         self._initialize()
 
         self.figs = figs
@@ -100,11 +101,11 @@ class Saver:
         
         self._create_surface()
 
-        self._finilize(is_subdivised, algorithm)
+        self._finilize(is_subdivised, algorithm, element_size)
 
 
-    def save_mesh(self, figs : list[Figure], is_subdivised = False, algorithm: int = 6):
-        self._create_geometry(figs, is_subdivised, algorithm)
+    def save_mesh(self, figs : list[Figure], is_subdivised = False, algorithm: int = 6, element_size: float = 1.0):
+        self._create_geometry(figs, is_subdivised, algorithm, element_size)
 
         if is_subdivised:
             self._save_mesh(f"mesh_subdivised_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}")
@@ -120,10 +121,10 @@ class Saver:
         
         return True
     
-    def view(self, figs: list[Figure], game = None, is_subdivised = False, algorithm: int = 6):
+    def view(self, figs: list[Figure], game = None, is_subdivised = False, algorithm: int = 6, element_size: float = 1.0):
         if game == None: return
 
-        self._create_geometry(figs, is_subdivised, algorithm)
+        self._create_geometry(figs, is_subdivised, algorithm, element_size)
 
         game.display_switch(False)
 
