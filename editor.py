@@ -15,6 +15,7 @@ WHITE               = (255, 255, 255)
 OPTIONS             = (230, 230, 255)
 OPTIONS_TITLE       = (100, 100, 255)
 OPTIONS_VALUE       = (150, 150, 200)
+WARNING             = (200, 150, 0)
 SLIDER              = (50, 50, 50)
 SLIDER_BALL         = (100, 100, 255)
 
@@ -87,6 +88,7 @@ class Game:
 
         algo_titre = font_title.render("Algorithme", True, OPTIONS_TITLE, (220, 220, 255))
         algo = font.render(self.get_algo_name(), True, OPTIONS_VALUE, (220, 220, 255))
+        algo_warn = font.render("Expérimental", True, WARNING, (220, 220, 255))
 
         element_title = font_title.render("Taille Éléments", True, OPTIONS_TITLE, (220, 220, 255))
         element_value = font.render(str(round(self.element_size, 2)), True, OPTIONS_VALUE, (220, 220, 255))
@@ -94,6 +96,8 @@ class Game:
         ## Algorithme
         self.window.blit(algo_titre, self.get_text_center(algo_titre, (600, 20)))
         self.window.blit(algo, self.get_text_center(algo, (600, 45)))
+        if self.algorithm >= 6 :
+            self.window.blit(algo_warn, self.get_text_center(algo_warn, (600, 60)))
 
         ## Element Size
         self.window.blit(element_title, self.get_text_center(element_title, (600, 100)))
@@ -397,20 +401,8 @@ class Game:
     def change_algorithm(self):
         self.algorithm = (self.algorithm + 1) % 11 if not self._shift else (self.algorithm - 1) % 11
 
-        # print('Algorithme sélectionné: ', end='')
-
         if self.algorithm == 3 : self.algorithm = (self.algorithm + 1) if not self._shift else (self.algorithm - 1)
         if self.algorithm == 9 : self.algorithm = (self.algorithm + 1) if not self._shift else (self.algorithm - 1)
-        
-        # if self.algorithm == 0 : print("MeshAdapt")
-        # if self.algorithm == 1 : print("Automatic")
-        # if self.algorithm == 2 : print("Initial mesh only")
-        # if self.algorithm == 4 : print("Delaunay")
-        # if self.algorithm == 5 : print("Frontal-Delaunay")
-        # if self.algorithm == 6 : print("BAMG")
-        # if self.algorithm == 7 : print("Frontal-Delaunay for Quads")
-        # if self.algorithm == 8 : print("Packing of Parallelograms")
-        # if self.algorithm == 10 : print("Quasi-structured Quad")
     
     def change_mode(self):
         if self.mode == "line":

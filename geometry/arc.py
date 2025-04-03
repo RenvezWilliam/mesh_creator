@@ -49,25 +49,33 @@ class Arc:
         pygame.draw.arc(screen, color, rect, s_a, e_a, width)
 
     def is_hovered(self, tolerance = 5.0) -> bool:
-        # regarde si la souris se trouve dans le cercle, entre les deux points
+        
+        if self.s_a is None or self.e_a is None : return False
 
+        # regarde si la souris se trouve dans le cercle, entre les deux points
         radius          = math.dist((self.pc.x, self.pc.y), (self.p1.x, self.p1.y))
         mouse_radius    = math.dist((self.pc.x, self.pc.y), pygame.mouse.get_pos())
 
         if not (radius - tolerance/2 <= mouse_radius <= radius + tolerance/2): return False
         
-        theta_start = math.atan2(- (self.p1.y - self.pc.y), self.p1.x - self.pc.x)
-        theta_end   = math.atan2(- (self.p2.y - self.pc.y), self.p2.x - self.pc.x)
-        theta_mouse = math.atan2(- (pygame.mouse.get_pos()[1] - self.pc.y), pygame.mouse.get_pos()[0] - self.pc.x)
+        theta_mouse = math.atan2(- (pygame.mouse.get_pos()[1] - self.pc.y), (pygame.mouse.get_pos()[0] - self.pc.x))
 
-        theta_start = (theta_start + 2 * math.pi) % (2 * math.pi)
-        theta_end   = (theta_end   + 2 * math.pi) % (2 * math.pi)
         theta_mouse = (theta_mouse + 2 * math.pi) % (2 * math.pi)
 
-        if theta_start < theta_end:
-            return theta_start <= theta_mouse <= theta_end
-        else:
-            return theta_mouse >= theta_start or theta_mouse <= theta_end
+        s_a = self.s_a
+        e_a = self.e_a
+
+        if e_a < s_a:
+            e_a += 2 * math.pi
+        if theta_mouse < s_a:
+            theta_mouse += 2 * math.pi
+        
+        return s_a <= theta_mouse <= e_a
+
+        # if theta_start < theta_end:
+        #     return theta_start <= theta_mouse <= theta_end
+        # else:
+        #     return theta_mouse >= theta_start or theta_mouse <= theta_end
     
     def relocate_center(self):
         # si un des points bouge, il faut absolument que le point central puisse se replacer
