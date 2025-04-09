@@ -2,8 +2,8 @@
     "show_help" : "h",
 
     "view_in_gmsh" : "q",
-    "save_as_mesh" : "s",
-    "save_as_geo" : "d",
+    "save_as_mesh" : "m",
+    "save_as_geo" : "g",
 
     "next_figure" : "up",
     "previous_figure" : "down",
@@ -12,6 +12,7 @@
     "change_mode" : "z",
     "new_figure" : "e",
     
-    "change_algorithm" : "y"
+    "change_algorithm" : "y",
+    "change_subdivision" : "s"
 }
 

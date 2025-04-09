@@ -4,6 +4,7 @@ from pygame.locals import *
 import sys
 import json
 
+from tool.button import Button
 from geometry.figure import Figure
 from geometry.arc import Arc
 
@@ -14,7 +15,7 @@ from reader import Reader
 WHITE               = (255, 255, 255)
 OPTIONS             = (230, 230, 255)
 OPTIONS_TITLE       = (100, 100, 255)
-OPTIONS_VALUE       = (150, 150, 200)
+OPTIONS_VALUE       = (100, 100, 140)
 WARNING             = (200, 150, 0)
 SLIDER              = (50, 50, 50)
 SLIDER_BALL         = (100, 100, 255)
@@ -36,6 +37,8 @@ OTHER_ARC_POINT     = (230, 250, 255)
 
 DRAG                = (50, 255, 50)
 
+BOUTON              = (180, 180, 255) 
+
 class Game:
     def __init__(self):
         self.mode                       = "line"
@@ -49,8 +52,35 @@ class Game:
         self.dragging                   = False
         self.point_dragged              = None
         self.element_size               = 1.0
-        self.slider_coordinate_x        = 600
-        self.slider_coordinate_y        = 140
+        self.subdivised                 = False
+
+        self.buttons: list[Button]      = []
+
+        ## Paramètres de la fenêtre ##
+        self.algo_title_coo             = (600, 15)
+        self.algo_value_coo             = (600, 35)
+        self.algo_warn_coo              = (600, 50)
+
+        self.subd_title_coo             = (600, 70)
+        self.subd_value_coo             = (600, 85)
+
+        self.element_title_coo          = (600, 105)
+        self.element_value_coo          = (600, 120)      
+        self.element_size_slider_coo    = [600, 135]
+        
+        self.figure_title_coo           = (600, 200)
+        self.figure_value_coo           = (600, 215)
+
+        self.mode_title_coo             = (600, 235)
+        self.mode_value_coo             = (600, 250)
+
+        self.ancrage_title_coo          = (600, 270)
+        self.ancrage_value_coo          = (600, 285)
+
+        
+
+       
+        
         self.is_sliding_element_size    = False
 
         with open("config_touches.json", 'r', encoding= "utf-8") as f:
@@ -61,10 +91,27 @@ class Game:
     def initialize(self):
         pygame.init()
 
+        self.buttons = []
+        self.buttons.append(Button((675, 5, 20, 20), ">", lambda: self.change_algorithm(True)))
+        self.buttons.append(Button((505, 5, 20, 20), "<", lambda: self.change_algorithm(False)))
+        self.buttons.append(Button((675, 60, 20, 20), ">", lambda: self.change_subdivision()))
+
+        self.buttons.append(Button((505, 190, 20, 20), "<", lambda: self.previous_figure()))
+        self.buttons.append(Button((675, 190, 20, 20), ">", lambda: self.next_figure()))
+        self.buttons.append(Button((650, 190, 20, 20), "+", lambda: self.add_new_figure()))
+        self.buttons.append(Button((675, 225, 20, 20), ">", lambda: self.change_mode()))
+        self.buttons.append(Button((505, 260, 20, 20), "<", lambda: self.change_anchor(False)))
+        self.buttons.append(Button((675, 260, 20, 20), ">", lambda: self.change_anchor(True)))
+
+        self.buttons.append(Button((510, 425, 180, 20), "Voir avec GMSH", lambda: self.view_mesh()))
+        self.buttons.append(Button((510, 450, 180, 20), "Sauvegarder en .msh", lambda: self.save_as_msh()))
+        self.buttons.append(Button((510, 475, 180, 20), "Sauvegarder en .geo", lambda: self.save_as_geo()))
+        
+
         self.size                   = self.width, self.height = 700, 500
         self.window                 = pygame.display.set_mode(self.size)
         self.clock                  = pygame.time.Clock().tick(30)
-        self.title                  = pygame.display.set_caption(f'Editeur de figure ({self.mode})')
+        self.title                  = pygame.display.set_caption(f'Editeur de figure GMSH')
 
         self._ctrl, self._shift     = False, False
 
@@ -81,11 +128,19 @@ class Game:
         self.draw_options()
     
     def draw_options(self):
+        option = "Ligne" if self.mode == "line" else "Arc de cercle"
+        ancrage = "Grand" if self.ancrage == 1 else "Moyen" if self.ancrage == 2 else "Petit" if self.ancrage == 3 else "Aucun"
+        figure = f"{self.current_selected_figure + 1} / {len(self.figures)}"
+        subdivision = "Activé" if self.subdivised else "Désactivé"
+
+        ## Dessin du background des options
         pygame.draw.rect(self.window, OPTIONS, (500, 0, 200, 500))
 
-        font_title = pygame.font.Font(None, 25)
-        font       = pygame.font.Font(None, 20)
+        ## Chargement des différentes polices
+        font_title  = pygame.font.Font(None, 25)
+        font        = pygame.font.Font(None, 20)
 
+        ## Intialisation des textes
         algo_titre = font_title.render("Algorithme", True, OPTIONS_TITLE, (220, 220, 255))
         algo = font.render(self.get_algo_name(), True, OPTIONS_VALUE, (220, 220, 255))
         algo_warn = font.render("Expérimental", True, WARNING, (220, 220, 255))
@@ -93,20 +148,58 @@ class Game:
         element_title = font_title.render("Taille Éléments", True, OPTIONS_TITLE, (220, 220, 255))
         element_value = font.render(str(round(self.element_size, 2)), True, OPTIONS_VALUE, (220, 220, 255))
 
-        ## Algorithme
-        self.window.blit(algo_titre, self.get_text_center(algo_titre, (600, 20)))
-        self.window.blit(algo, self.get_text_center(algo, (600, 45)))
-        if self.algorithm >= 6 :
-            self.window.blit(algo_warn, self.get_text_center(algo_warn, (600, 60)))
+        point_mode_title = font_title.render(f"Mode", True, OPTIONS_TITLE, (220, 220, 255))
+        point_mode       = font.render(option, True, OPTIONS_VALUE, (220, 220, 255))
 
-        ## Element Size
-        self.window.blit(element_title, self.get_text_center(element_title, (600, 100)))
-        self.window.blit(element_value, self.get_text_center(element_value, (600, 125)))
+        ancrage_title = font_title.render(f"Ancrage", True, OPTIONS_TITLE, (220, 220, 255))
+        ancrage_value = font.render(ancrage, True, OPTIONS_VALUE, (220, 220, 255))
+
+        figure_title = font_title.render(f"Figure", True, OPTIONS_TITLE, (220, 220, 255))
+        figure_value = font.render(figure, True, OPTIONS_VALUE, (220, 220, 255))
+
+        subdivision_title = font_title.render(f"Subdivision", True, OPTIONS_TITLE, (220, 220, 255))
+        subdivision_value = font.render(subdivision, True, OPTIONS_VALUE, (220, 220, 255))
+
+        ## Dessine les boutons
+        for button in self.buttons:
+            button.draw(self.window)
+
+        ## Affiche le texte
+
+        # Algorithme
+        self.window.blit(algo_titre, self.get_text_center(algo_titre, self.algo_title_coo))
+        self.window.blit(algo, self.get_text_center(algo, self.algo_value_coo))
+        if self.algorithm >= 6 :
+            self.window.blit(algo_warn, self.get_text_center(algo_warn, self.algo_warn_coo))
+        
+        # Subdivision
+        self.window.blit(subdivision_title, self.get_text_center(subdivision_title, self.subd_title_coo))
+        self.window.blit(subdivision_value, self.get_text_center(subdivision_value, self.subd_value_coo))
+
+        # Element Size
+        self.window.blit(element_title, self.get_text_center(element_title, self.element_title_coo))
+        self.window.blit(element_value, self.get_text_center(element_value, self.element_value_coo))
         
         # Dessine le slider
-        pygame.draw.line(self.window, SLIDER, (520, self.slider_coordinate_y), (680, self.slider_coordinate_y))
-        pygame.draw.circle(self.window, SLIDER_BALL, (self.slider_coordinate_x, self.slider_coordinate_y), 5)
+        pygame.draw.line(self.window, SLIDER, (520, self.element_size_slider_coo[1]), (680, self.element_size_slider_coo[1]))
+        pygame.draw.circle(self.window, SLIDER_BALL, (self.element_size_slider_coo[0], self.element_size_slider_coo[1]), 5)
 
+        # Dessine le séparateur
+        pygame.draw.line(self.window, (200, 200, 255), (500, 170), (700, 170))
+
+        # Point Mode
+        self.window.blit(point_mode_title, self.get_text_center(point_mode_title, self.mode_title_coo))
+        self.window.blit(point_mode, self.get_text_center(point_mode, self.mode_value_coo))
+
+        # Ancrage
+        self.window.blit(ancrage_title, self.get_text_center(ancrage_title, self.ancrage_title_coo))
+        self.window.blit(ancrage_value, self.get_text_center(ancrage_value, self.ancrage_value_coo))
+
+        # Figures
+        self.window.blit(figure_title, self.get_text_center(figure_title, self.figure_title_coo))
+        self.window.blit(figure_value, self.get_text_center(figure_value, self.figure_value_coo))
+
+        
     
     def get_text_center(self, text, coordinates):
         txt_rct = text.get_rect()
@@ -126,7 +219,6 @@ class Game:
 
         return "None"
 
-    
     def draw_large_anchor_lines(self):
         for i in range(0, 500, 100):
             pygame.draw.line(self.window, ANCHOR_BIG, (0, i), (500, i))
@@ -223,14 +315,14 @@ class Game:
 
         x, y = pygame.mouse.get_pos()
 
-        if not ((510 < x < 690) and (self.slider_coordinate_y - 10 < y < self.slider_coordinate_y + 10)):
+        if not ((510 < x < 690) and (self.element_size_slider_coo[1] - 10 < y < self.element_size_slider_coo[1] + 10)):
             self.is_sliding_element_size = False
         
-        self.slider_coordinate_x = x
-        if self.slider_coordinate_x < 520 : self.slider_coordinate_x = 520
-        if self.slider_coordinate_x > 680 : self.slider_coordinate_x = 680
+        self.element_size_slider_coo[0] = x
+        if self.element_size_slider_coo[0] < 520 : self.element_size_slider_coo[0] = 520
+        if self.element_size_slider_coo[0] > 680 : self.element_size_slider_coo[0] = 680
 
-        slider_x = self.slider_coordinate_x - 520
+        slider_x = self.element_size_slider_coo[0] - 520
 
         # 10 ^ (x / 80) / 10
         self.element_size = ( 10 ** (slider_x / 80) ) / 10
@@ -280,8 +372,6 @@ class Game:
             print("Vous ne pouvez plus sauvegarder qu'en .geo à cause d'une erreur précédente.")
             return
 
-        is_subdivised = True if self._shift else False
-
         self.remove_all_empty_figures()
 
         points = []
@@ -292,7 +382,7 @@ class Game:
                 print('Une des surfaces possède moins de 3 points, il ne peut pas être sauvegardée')
                 return
             
-        if not saver.save_mesh(self.figures, is_subdivised, (self.algorithm + 1), self.element_size):
+        if not saver.save_mesh(self.figures, self.subdivised, (self.algorithm + 1), self.element_size):
             self.had_error = True
         
 
@@ -315,8 +405,6 @@ class Game:
         if not ok:
             print("Vous ne pouvez pas visualiser une figure sans points.")
             return
-        
-        is_subdivised = True if self._shift else False
 
         self.remove_all_empty_figures()
 
@@ -325,7 +413,7 @@ class Game:
                 print('Une des surfaces possède moins de 2 points, il ne peut pas être sauvegardée')
                 return
 
-        if not saver.view(figs=self.figures, is_subdivised=is_subdivised, game=self, algorithm=(self.algorithm + 1), element_size=self.element_size):
+        if not saver.view(figs=self.figures, is_subdivised=self.subdivised, game=self, algorithm=(self.algorithm + 1), element_size=self.element_size):
             self.had_error = True
 
     def save_as_geo(self):
@@ -376,15 +464,12 @@ class Game:
 
         print(f"{BLEUC}{ITALIQUE}Sauvegarde{RESET}")
         print(f"• '{self.touches['save_as_mesh']}'                -> Sauvegarder le maillage")
-        print(f"• SHIFT + '{self.touches['save_as_mesh']}'        -> Sauvegarder le maillage (avec subdivision)")
         print(f"• '{self.touches['save_as_geo']}'                -> Sauvegarder la forme")
-
-        print(f'{BLEUC}{ITALIQUE}Visualisation{RESET}')
         print(f"• '{self.touches['view_in_gmsh']}'                -> Visualiser sous GMSH")
-        print(f"• SHIFT + '{self.touches['view_in_gmsh']}'        -> Visualiser sous GMSH (avec subdivision)")
 
         print(f'{BLEUC}{ITALIQUE}Algorithmes{RESET}')
-        print(f"• '{self.touches['change_algorithm']}' / SHIFT + '{self.touches['change_algorithm']}'  -> Changer d'algorithme")
+        print(f"• '{self.touches['change_algorithm']}'                -> Changer d'algorithme")
+        print(f"• '{self.touches['change_subdivision']}'                -> Activer / Désactiver la subdivision")
 
         print(f"\n{ITALIQUE}•• '{self.touches['show_help']}' pour revoir cette liste ••{RESET}")
 
@@ -397,12 +482,30 @@ class Game:
 
     def previous_figure(self):
         self.current_selected_figure = (self.current_selected_figure - 1) % (len(self.figures))
+    
+    def change_subdivision(self):
+        self.subdivised = not self.subdivised
 
-    def change_algorithm(self):
-        self.algorithm = (self.algorithm + 1) % 11 if not self._shift else (self.algorithm - 1) % 11
+    def change_algorithm(self, next=None):
+        if next == None:
+            self.algorithm = (self.algorithm + 1) % 11 if not self._shift else (self.algorithm - 1) % 11
 
-        if self.algorithm == 3 : self.algorithm = (self.algorithm + 1) if not self._shift else (self.algorithm - 1)
-        if self.algorithm == 9 : self.algorithm = (self.algorithm + 1) if not self._shift else (self.algorithm - 1)
+            if self.algorithm == 3 : self.algorithm = (self.algorithm + 1) if not self._shift else (self.algorithm - 1)
+            if self.algorithm == 9 : self.algorithm = (self.algorithm + 1) if not self._shift else (self.algorithm - 1)
+        else:
+            if next == True:
+                self.algorithm = (self.algorithm + 1) % 11
+
+                if self.algorithm == 3 : self.algorithm = (self.algorithm + 1)
+                if self.algorithm == 9 : self.algorithm = (self.algorithm + 1)
+
+            if next == False:
+                self.algorithm = (self.algorithm - 1) % 11
+
+                if self.algorithm == 3 : self.algorithm = (self.algorithm - 1)
+                if self.algorithm == 9 : self.algorithm = (self.algorithm - 1)
+
+        
     
     def change_mode(self):
         if self.mode == "line":
@@ -413,11 +516,16 @@ class Game:
         if self.figures[self.current_selected_figure]._choosing_arc_center:
             self.figures[self.current_selected_figure]._choosing_arc_center = False
             self.figures[self.current_selected_figure].remove_point(self.figures[self.current_selected_figure].points[-1])
-
-        self.title == pygame.display.set_caption(f'Editeur de figure ({self.mode})')
     
-    def change_anchor(self):
-        self.ancrage = (self.ancrage + 1) % 4 if not self._shift == True else (self.ancrage - 1) % 4
+    def change_anchor(self, next=None):
+        if next == None:
+            self.ancrage = (self.ancrage + 1) % 4 if not self._shift == True else (self.ancrage - 1) % 4
+        else:
+            if next == True:
+                self.ancrage = (self.ancrage + 1) % 4
+
+            if next == False:
+                self.ancrage = (self.ancrage - 1) % 4
 
     def events(self):
         keys = pygame.key.get_pressed()
@@ -454,8 +562,11 @@ class Game:
                 if event.button == pygame.BUTTON_LEFT: ## CLIC GAUCHE
                     if 0 < x < 500 and 0 < y < 500:
                         self.left_clicked()
+                    
+                    for button in self.buttons:
+                        button.clicked()
 
-                    if 510 < x < 690 and self.slider_coordinate_y - 10 < y < self.slider_coordinate_y + 10:
+                    if 510 < x < 690 and self.element_size_slider_coo[1] - 10 < y < self.element_size_slider_coo[1] + 10:
                         self.is_sliding_element_size = True
                     return
                     
@@ -490,6 +601,6 @@ def run(path : str = None):
 
 if __name__ == '__main__':
     run()
-    #run("result_example/geo_unrolled/star.geo_unrolled")
+    #run("result_example/geo_unrolled/1-sliced_square.geo_unrolled")
 
     
