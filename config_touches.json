@@ -2,15 +2,15 @@
     "show_help" : "h",
 
     "view_in_gmsh" : "q",
-    "save_as_mesh" : "m",
-    "save_as_geo" : "g",
+    "save_as_mesh" : "o",
+    "save_as_geo" : "p",
 
     "next_figure" : "up",
     "previous_figure" : "down",
 
     "change_anchor" : "a",
-    "change_mode" : "z",
-    "new_figure" : "e",
+    "change_mode" : "m",
+    "new_figure" : "f",
     
     "change_algorithm" : "y",
     "change_subdivision" : "s"

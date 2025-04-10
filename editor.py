@@ -67,15 +67,15 @@ class Game:
         self.element_title_coo          = (600, 105)
         self.element_value_coo          = (600, 120)      
         self.element_size_slider_coo    = [600, 135]
-        
-        self.figure_title_coo           = (600, 200)
-        self.figure_value_coo           = (600, 215)
 
-        self.mode_title_coo             = (600, 235)
-        self.mode_value_coo             = (600, 250)
+        self.mode_title_coo             = (600, 200)
+        self.mode_value_coo             = (600, 215)
 
-        self.ancrage_title_coo          = (600, 270)
-        self.ancrage_value_coo          = (600, 285)
+        self.ancrage_title_coo          = (600, 235)
+        self.ancrage_value_coo          = (600, 250)
+
+        self.figure_title_coo           = (600, 270)
+        self.figure_value_coo           = (600, 285)
 
         
 
@@ -96,12 +96,12 @@ class Game:
         self.buttons.append(Button((505, 5, 20, 20), "<", lambda: self.change_algorithm(False)))
         self.buttons.append(Button((675, 60, 20, 20), ">", lambda: self.change_subdivision()))
 
-        self.buttons.append(Button((505, 190, 20, 20), "<", lambda: self.previous_figure()))
-        self.buttons.append(Button((675, 190, 20, 20), ">", lambda: self.next_figure()))
-        self.buttons.append(Button((650, 190, 20, 20), "+", lambda: self.add_new_figure()))
-        self.buttons.append(Button((675, 225, 20, 20), ">", lambda: self.change_mode()))
-        self.buttons.append(Button((505, 260, 20, 20), "<", lambda: self.change_anchor(False)))
-        self.buttons.append(Button((675, 260, 20, 20), ">", lambda: self.change_anchor(True)))
+        self.buttons.append(Button((675, 190, 20, 20), ">", lambda: self.change_mode()))
+        self.buttons.append(Button((505, 225, 20, 20), "<", lambda: self.change_anchor(False)))
+        self.buttons.append(Button((675, 225, 20, 20), ">", lambda: self.change_anchor(True)))
+        self.buttons.append(Button((505, 260, 20, 20), "<", lambda: self.previous_figure()))
+        self.buttons.append(Button((675, 260, 20, 20), ">", lambda: self.next_figure()))
+        self.buttons.append(Button((650, 260, 20, 20), "+", lambda: self.add_new_figure()))
 
         self.buttons.append(Button((510, 425, 180, 20), "Voir avec GMSH", lambda: self.view_mesh()))
         self.buttons.append(Button((510, 450, 180, 20), "Sauvegarder en .msh", lambda: self.save_as_msh()))
@@ -450,7 +450,7 @@ class Game:
         print(f"{BLEU}{GRAS}-======= MENU EXPLICATIF =======-{RESET}")
         print(f'{BLEUC}{ITALIQUE}Points{RESET}')
         print("• Clic gauche        -> Ajout d'un point")
-        print("• Clic droit         -> Retire le dernier point de la figure")
+        print("• Clic droit         -> Retire le point de la figure")
         print(f"• '{self.touches['change_mode']}'                -> Changer mode (ligne / arc)")
 
         print(f"{BLEUC}{ITALIQUE}Ancrage{RESET}")
@@ -551,6 +551,7 @@ class Game:
                 if pygame.key.name(event.key) == self.touches["change_mode"]        : self.change_mode()
                 if pygame.key.name(event.key) == self.touches["change_anchor"]      : self.change_anchor()
                 if pygame.key.name(event.key) == self.touches["save_as_geo"]        : self.save_as_geo()
+                if pygame.key.name(event.key) == self.touches["change_subdivision"] : self.change_subdivision()
             
             if event.type == pygame.KEYUP:
                 if pygame.key.name(event.key) == 'left shift'   : self._shift = False
